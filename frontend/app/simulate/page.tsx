@@ -81,12 +81,24 @@ export default function SimulatePage() {
         transition: "background 0.25s ease",
       }}>
         <Link href="/" style={{
-          fontWeight: 700, fontSize: "13px",
-          letterSpacing: "-0.01em", color: "var(--text)",
-          fontFamily: "var(--font-space-mono), 'Courier New', monospace",
+          display: "flex", alignItems: "center", gap: "8px",
           textDecoration: "none",
         }}>
-          altlife
+          <svg width="22" height="22" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="14" cy="18" r="3.5" fill="var(--text)"/>
+            <line x1="2" y1="18" x2="14" y2="18" stroke="var(--text)" strokeWidth="1.8" strokeLinecap="round"/>
+            <line x1="14" y1="18" x2="30" y2="7" stroke="var(--text)" strokeWidth="1.8" strokeLinecap="round"/>
+            <circle cx="30" cy="7" r="2.4" stroke="var(--text)" strokeWidth="1.8" fill="none"/>
+            <line x1="14" y1="18" x2="30" y2="29" stroke="var(--text)" strokeWidth="1.8" strokeLinecap="round"/>
+            <circle cx="30" cy="29" r="2.4" stroke="var(--text)" strokeWidth="1.8" fill="none"/>
+          </svg>
+          <span style={{
+            fontWeight: 700, fontSize: "13px",
+            letterSpacing: "-0.01em", color: "var(--text)",
+            fontFamily: "var(--font-space-mono), 'Courier New', monospace",
+          }}>
+            altlife
+          </span>
         </Link>
 
         <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>

@@ -1,0 +1,32 @@
+<svg width="148" height="36" viewBox="0 0 148 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Decision node: filled circle (the moment of choice) -->
+  <circle cx="14" cy="18" r="3.2" fill="currentColor"/>
+
+  <!-- Stem in -->
+  <line x1="2" y1="18" x2="14" y2="18"
+        stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+
+  <!-- Upper branch -->
+  <line x1="14" y1="18" x2="30" y2="8"
+        stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+  <!-- Upper terminus: hollow circle = open future -->
+  <circle cx="30" cy="8" r="2.2"
+          stroke="currentColor" stroke-width="1.7" fill="none"/>
+
+  <!-- Lower branch -->
+  <line x1="14" y1="18" x2="30" y2="28"
+        stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+  <!-- Lower terminus: hollow circle -->
+  <circle cx="30" cy="28" r="2.2"
+          stroke="currentColor" stroke-width="1.7" fill="none"/>
+
+  <!-- Wordmark -->
+  <text
+    x="40" y="24"
+    font-family="'Space Mono', 'Courier New', monospace"
+    font-size="14"
+    font-weight="700"
+    letter-spacing="-0.4"
+    fill="currentColor"
+  >altlife</text>
+</svg>

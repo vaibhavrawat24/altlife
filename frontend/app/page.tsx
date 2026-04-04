@@ -231,9 +231,19 @@ export default function Home() {
         borderBottom: `1px solid ${t.navBorder}`,
       }}>
         {/* logo */}
-        <span style={{ fontWeight: 700, fontSize: '13px', letterSpacing: '-0.01em', color: t.ink, fontFamily: MONO }}>
-          altlife
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <svg width="22" height="22" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="14" cy="18" r="3.5" fill={t.ink}/>
+            <line x1="2" y1="18" x2="14" y2="18" stroke={t.ink} strokeWidth="1.8" strokeLinecap="round"/>
+            <line x1="14" y1="18" x2="30" y2="7" stroke={t.ink} strokeWidth="1.8" strokeLinecap="round"/>
+            <circle cx="30" cy="7" r="2.4" stroke={t.ink} strokeWidth="1.8" fill="none"/>
+            <line x1="14" y1="18" x2="30" y2="29" stroke={t.ink} strokeWidth="1.8" strokeLinecap="round"/>
+            <circle cx="30" cy="29" r="2.4" stroke={t.ink} strokeWidth="1.8" fill="none"/>
+          </svg>
+          <span style={{ fontWeight: 700, fontSize: '13px', letterSpacing: '-0.01em', color: t.ink, fontFamily: MONO }}>
+            altlife
+          </span>
+        </div>
 
         {/* right side */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -286,6 +296,21 @@ export default function Home() {
           padding: '0 24px',
           display: 'flex', flexDirection: 'column', alignItems: 'center',
         }}>
+          {/* Brand lockup */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+            <svg width="30" height="30" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="14" cy="18" r="3.5" fill={t.ink}/>
+              <line x1="2" y1="18" x2="14" y2="18" stroke={t.ink} strokeWidth="1.8" strokeLinecap="round"/>
+              <line x1="14" y1="18" x2="30" y2="7" stroke={t.ink} strokeWidth="1.8" strokeLinecap="round"/>
+              <circle cx="30" cy="7" r="2.4" stroke={t.ink} strokeWidth="1.8" fill="none"/>
+              <line x1="14" y1="18" x2="30" y2="29" stroke={t.ink} strokeWidth="1.8" strokeLinecap="round"/>
+              <circle cx="30" cy="29" r="2.4" stroke={t.ink} strokeWidth="1.8" fill="none"/>
+            </svg>
+            <span style={{ fontWeight: 700, fontSize: '18px', letterSpacing: '-0.01em', color: t.ink, fontFamily: MONO }}>
+              altlife
+            </span>
+          </div>
+
           <p style={{
             fontSize: '10px', letterSpacing: '0.16em', textTransform: 'uppercase',
             color: t.taglineColor, marginBottom: '28px', textAlign: 'center',
