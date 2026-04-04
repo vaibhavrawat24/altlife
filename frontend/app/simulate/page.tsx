@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import InputForm from "@/components/input/InputForm";
@@ -10,38 +10,121 @@ import { useSimulationStream } from "@/hooks/useSimulationStream";
 const IMPACT_DOT: Record<string, string> = {
   positive: "#10b981",
   negative: "#ef4444",
-  neutral: "#94a3b8",
+  neutral:  "#94a3b8",
 };
+
+// ── Theme toggle icons ────────────────────────────────────
+
+function SunIcon({ color }: { color: string }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="8" r="3.2" stroke={color} strokeWidth="1.4"/>
+      {[0,45,90,135,180,225,270,315].map((deg) => {
+        const r = Math.PI * deg / 180;
+        return <line key={deg}
+          x1={8 + Math.cos(r) * 5.2} y1={8 + Math.sin(r) * 5.2}
+          x2={8 + Math.cos(r) * 7}   y2={8 + Math.sin(r) * 7}
+          stroke={color} strokeWidth="1.4" strokeLinecap="round"/>;
+      })}
+    </svg>
+  );
+}
+
+function MoonIcon({ color }: { color: string }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+      <path d="M13 10.5A6 6 0 0 1 5.5 3a6 6 0 1 0 7.5 7.5z"
+        stroke={color} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────
 
 export default function SimulatePage() {
   const { state, start, reset } = useSimulationStream();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [timelineExpanded, setTimelineExpanded] = useState(false);
+  const [isDark, setIsDark] = useState(false);
   const isRunning = state.phase !== "idle";
 
-  const handleNodeClick = (id: string) => {
-    setSelectedNodeId((prev) => (prev === id ? null : id));
+  // sync theme from localStorage on mount
+  useEffect(() => {
+    try {
+      setIsDark(localStorage.getItem("altlife-theme") === "dark");
+    } catch { /* no localStorage */ }
+  }, []);
+
+  const toggleTheme = () => {
+    const next = !isDark;
+    setIsDark(next);
+    const t = next ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", t);
+    try { localStorage.setItem("altlife-theme", t); } catch { /* no localStorage */ }
   };
 
+  const handleNodeClick = (id: string) =>
+    setSelectedNodeId((prev) => (prev === id ? null : id));
+
+  const iconColor = isDark ? "rgba(205,195,178,0.5)" : "rgba(92,79,68,0.5)";
+
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
+    <div className="min-h-screen" style={{ background: "var(--bg)", transition: "background 0.25s ease" }}>
+
       {/* Nav */}
-      <nav className="flex items-center justify-between px-8 py-4 border-b sticky top-0 z-40"
-        style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-        <Link href="/" className="font-semibold text-sm" style={{ color: "var(--text)" }}>
-          Altlife
+      <nav style={{
+        position: "sticky", top: 0, zIndex: 40,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "0 28px", height: "52px",
+        borderBottom: "1px solid var(--border)",
+        background: "var(--surface)",
+        transition: "background 0.25s ease",
+      }}>
+        <Link href="/" style={{
+          fontWeight: 700, fontSize: "13px",
+          letterSpacing: "-0.01em", color: "var(--text)",
+          fontFamily: "var(--font-space-mono), 'Courier New', monospace",
+          textDecoration: "none",
+        }}>
+          altlife
         </Link>
-        {isRunning && (
-          <button onClick={() => { reset(); setSelectedNodeId(null); }}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg border transition-all"
-            style={{ color: "var(--text-secondary)", borderColor: "var(--border)" }}>
-            ← New simulation
+
+        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+          {/* theme toggle */}
+          <button
+            onClick={toggleTheme}
+            title={isDark ? "Switch to light" : "Switch to dark"}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: "32px", height: "32px",
+              background: "transparent",
+              border: "1px solid var(--border)",
+              borderRadius: "6px", cursor: "pointer",
+              flexShrink: 0,
+            }}
+          >
+            {isDark ? <SunIcon color={iconColor} /> : <MoonIcon color={iconColor} />}
           </button>
-        )}
+
+          {isRunning && (
+            <button onClick={() => { reset(); setSelectedNodeId(null); }}
+              style={{
+                fontSize: "11px", fontFamily: "var(--font-space-mono), 'Courier New', monospace",
+                padding: "6px 12px", borderRadius: "6px",
+                border: "1px solid var(--border)",
+                background: "transparent", color: "var(--text-secondary)",
+                cursor: "pointer", letterSpacing: "0.02em",
+              }}>
+              ← new simulation
+            </button>
+          )}
+        </div>
       </nav>
 
       <div className="max-w-6xl mx-auto px-6 py-12">
         <AnimatePresence mode="wait">
-          {/* Input */}
+
+          {/* ── Input ─────────────────────────────────── */}
           {!isRunning && (
             <motion.div key="input"
               initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
@@ -58,7 +141,7 @@ export default function SimulatePage() {
             </motion.div>
           )}
 
-          {/* Simulation */}
+          {/* ── Simulation ────────────────────────────── */}
           {isRunning && (
             <motion.div key="sim" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
 
@@ -77,31 +160,30 @@ export default function SimulatePage() {
                   )}
                   {state.profile.decision_domain && (
                     <span className="text-xs px-2.5 py-1 rounded-full border"
-                      style={{ background: "var(--accent-light)", borderColor: "#c7bfff", color: "var(--accent)" }}>
+                      style={{ background: "var(--accent-light)", borderColor: "var(--accent-border)", color: "var(--accent)" }}>
                       {state.profile.decision_domain}
                     </span>
                   )}
                 </motion.div>
               )}
 
-              {/* Reality check alert */}
+              {/* Reality check */}
               {state.reality && state.reality.hard_constraints.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
                   className="rounded-xl border p-4"
                   style={{
-                    background: state.reality.severity === "critical" ? "#fff5f5"
-                      : state.reality.severity === "high" ? "#fffbeb"
+                    background: state.reality.severity === "critical" ? "var(--danger-bg)"
+                      : state.reality.severity === "high" ? "var(--warning-bg)"
                       : "var(--surface)",
-                    borderColor: state.reality.severity === "critical" ? "#fca5a5"
-                      : state.reality.severity === "high" ? "#fcd34d"
+                    borderColor: state.reality.severity === "critical" ? "var(--danger-border)"
+                      : state.reality.severity === "high" ? "var(--warning-border)"
                       : "var(--border)",
                   }}>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-sm">
                       {state.reality.severity === "critical" ? "🚨"
-                        : state.reality.severity === "high" ? "⚠️"
-                        : "ℹ️"}
+                        : state.reality.severity === "high" ? "⚠️" : "ℹ️"}
                     </span>
                     <span className="text-xs font-semibold uppercase tracking-widest"
                       style={{
@@ -140,8 +222,8 @@ export default function SimulatePage() {
               {state.nodes.filter((n) => n.is_primary).length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {state.nodes.filter((n) => n.is_primary).map((n) => {
-                    const done = state.completedActorIds.includes(n.id);
-                    const subs = state.nodes.filter((s) => s.parent_id === n.id);
+                    const done    = state.completedActorIds.includes(n.id);
+                    const subs    = state.nodes.filter((s) => s.parent_id === n.id);
                     const doneSubs = subs.filter((s) => state.completedActorIds.includes(s.id)).length;
                     return (
                       <button key={n.id}
@@ -152,7 +234,7 @@ export default function SimulatePage() {
                           borderColor: selectedNodeId === n.id ? n.color : "var(--border)",
                           color: done ? n.color : "var(--text-secondary)",
                         }}>
-                        <div className="w-2 h-2 rounded-full" style={{ background: done ? n.color : "#ccc" }} />
+                        <div className="w-2 h-2 rounded-full" style={{ background: done ? n.color : "var(--border-strong)" }} />
                         {n.label}
                         <span style={{ color: "var(--text-muted)" }}>
                           +{subs.length} sub · {doneSubs}/{subs.length + 1} done
@@ -166,7 +248,7 @@ export default function SimulatePage() {
               {/* Error */}
               {state.phase === "error" && (
                 <div className="rounded-xl border p-5"
-                  style={{ background: "#fff5f5", borderColor: "#fecaca" }}>
+                  style={{ background: "var(--danger-bg)", borderColor: "var(--danger-border)" }}>
                   <p className="font-semibold mb-1" style={{ color: "#ef4444" }}>Simulation failed</p>
                   <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{state.error}</p>
                   <button onClick={() => { reset(); setSelectedNodeId(null); }}
@@ -174,51 +256,6 @@ export default function SimulatePage() {
                     Try again
                   </button>
                 </div>
-              )}
-
-              {/* Timeline — compact inline list below graph */}
-              {state.timeline.length > 0 && (
-                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest mb-4"
-                    style={{ color: "var(--text-muted)" }}>
-                    Full Timeline — {state.timeline.length} events across 12 months
-                  </h3>
-                  <div className="space-y-2">
-                    {state.timeline.map((ev, i) => {
-                      const node = state.nodes.find((n) => n.id === ev.actor_id);
-                      const color = node?.color ?? "#6366f1";
-                      const dot = IMPACT_DOT[ev.impact] ?? "#94a3b8";
-                      return (
-                        <motion.div key={i}
-                          initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.025 }}
-                          className="flex gap-3 items-start p-3 rounded-xl border cursor-pointer transition-all hover:border-current"
-                          style={{ background: "var(--surface)", borderColor: "var(--border)" }}
-                          onClick={() => handleNodeClick(ev.actor_id)}>
-                          <span className="text-xs font-bold shrink-0 w-7"
-                            style={{ color: "var(--text-muted)" }}>
-                            M{ev.month}
-                          </span>
-                          <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"
-                            style={{ background: dot }} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm" style={{ color: "var(--text)" }}>{ev.event}</p>
-                            {ev.financial_delta && (
-                              <span className="text-xs font-mono"
-                                style={{ color: "var(--text-secondary)" }}>
-                                {ev.financial_delta}
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-xs shrink-0 px-2 py-0.5 rounded-full"
-                            style={{ background: color + "15", color }}>
-                            {ev.actor}
-                          </span>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                </motion.div>
               )}
 
               {/* Synthesis */}
@@ -234,15 +271,14 @@ export default function SimulatePage() {
                     Synthesis
                   </h3>
 
-                  {/* Verdict + Risk */}
+                  {/* Verdict card */}
                   <div className="rounded-2xl border-2 p-6"
-                    style={{ borderColor: "#c7bfff", background: "#faf8ff" }}>
+                    style={{ borderColor: "var(--accent-border)", background: "var(--accent-surface)" }}>
                     <div className="flex items-start justify-between gap-6">
                       <div className="flex-1">
                         <p className="text-xs font-semibold uppercase tracking-widest mb-2"
                           style={{ color: "var(--accent)" }}>Verdict</p>
-                        <p className="text-base font-medium leading-relaxed"
-                          style={{ color: "var(--text)" }}>
+                        <p className="text-base font-medium leading-relaxed" style={{ color: "var(--text)" }}>
                           {state.synthesis.verdict}
                         </p>
                       </div>
@@ -257,8 +293,7 @@ export default function SimulatePage() {
                       </div>
                     </div>
                     {/* Risk bar */}
-                    <div className="mt-4 rounded-full h-1.5 overflow-hidden"
-                      style={{ background: "var(--border)" }}>
+                    <div className="mt-4 rounded-full h-1.5 overflow-hidden" style={{ background: "var(--border)" }}>
                       <motion.div className="h-full rounded-full"
                         style={{
                           background: state.synthesis.risk_score < 35 ? "#10b981"
@@ -273,24 +308,22 @@ export default function SimulatePage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Risks */}
                     <div className="rounded-xl border p-4"
-                      style={{ background: "#fff5f5", borderColor: "#fecaca" }}>
+                      style={{ background: "var(--danger-bg)", borderColor: "var(--danger-border)" }}>
                       <p className="text-xs font-semibold uppercase tracking-widest mb-3"
                         style={{ color: "#ef4444" }}>Key Risks</p>
                       {(state.synthesis.key_risks ?? []).map((r, i) => (
-                        <p key={i} className="text-sm mb-1.5 flex gap-2"
-                          style={{ color: "var(--text-secondary)" }}>
+                        <p key={i} className="text-sm mb-1.5 flex gap-2" style={{ color: "var(--text-secondary)" }}>
                           <span style={{ color: "#ef4444" }}>•</span>{r}
                         </p>
                       ))}
                     </div>
                     {/* Opportunities */}
                     <div className="rounded-xl border p-4"
-                      style={{ background: "#f0fdf4", borderColor: "#bbf7d0" }}>
+                      style={{ background: "var(--success-bg)", borderColor: "var(--success-border)" }}>
                       <p className="text-xs font-semibold uppercase tracking-widest mb-3"
                         style={{ color: "#10b981" }}>Key Opportunities</p>
                       {(state.synthesis.key_opportunities ?? []).map((o, i) => (
-                        <p key={i} className="text-sm mb-1.5 flex gap-2"
-                          style={{ color: "var(--text-secondary)" }}>
+                        <p key={i} className="text-sm mb-1.5 flex gap-2" style={{ color: "var(--text-secondary)" }}>
                           <span style={{ color: "#10b981" }}>•</span>{o}
                         </p>
                       ))}
@@ -312,19 +345,15 @@ export default function SimulatePage() {
                             M{tp.month}
                           </div>
                           <div>
-                            <p className="text-sm font-medium" style={{ color: "var(--text)" }}>
-                              {tp.event}
-                            </p>
-                            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                              {tp.why}
-                            </p>
+                            <p className="text-sm font-medium" style={{ color: "var(--text)" }}>{tp.event}</p>
+                            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{tp.why}</p>
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
 
-                  {/* First step CTA */}
+                  {/* First step */}
                   <div className="rounded-xl border-2 p-5"
                     style={{ background: "var(--accent-light)", borderColor: "var(--accent)" }}>
                     <p className="text-xs font-semibold uppercase tracking-widest mb-1"
@@ -337,13 +366,89 @@ export default function SimulatePage() {
                   </div>
 
                   {state.synthesis.agent_consensus && (
-                    <p className="text-xs text-center italic px-4"
-                      style={{ color: "var(--text-muted)" }}>
+                    <p className="text-xs text-center italic px-4" style={{ color: "var(--text-muted)" }}>
                       {state.synthesis.agent_consensus}
                     </p>
                   )}
                 </motion.div>
               )}
+
+              {/* Timeline */}
+              {state.timeline.length > 0 && (
+                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs font-semibold uppercase tracking-widest"
+                      style={{ color: "var(--text-muted)" }}>
+                      Timeline — {state.timeline.length} events across 12 months
+                    </h3>
+                  </div>
+                  <div className="space-y-2">
+                    {(timelineExpanded ? state.timeline : state.timeline.slice(0, 3)).map((ev, i) => {
+                      const node  = state.nodes.find((n) => n.id === ev.actor_id);
+                      const color = node?.color ?? "#6366f1";
+                      const dot   = IMPACT_DOT[ev.impact] ?? "#94a3b8";
+                      return (
+                        <motion.div key={i}
+                          initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.025 }}
+                          className="flex gap-3 items-start p-3 rounded-xl border cursor-pointer transition-all hover:border-current"
+                          style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+                          onClick={() => handleNodeClick(ev.actor_id)}>
+                          <span className="text-xs font-bold shrink-0 w-7" style={{ color: "var(--text-muted)" }}>
+                            M{ev.month}
+                          </span>
+                          <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ background: dot }} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm" style={{ color: "var(--text)" }}>{ev.event}</p>
+                            {ev.financial_delta && (
+                              <span className="text-xs font-mono" style={{ color: "var(--text-secondary)" }}>
+                                {ev.financial_delta}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs shrink-0 px-2 py-0.5 rounded-full"
+                            style={{ background: color + "15", color }}>
+                            {ev.actor}
+                          </span>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+
+                  {state.timeline.length > 3 && (
+                    <button
+                      onClick={() => setTimelineExpanded(p => !p)}
+                      style={{
+                        marginTop: "10px",
+                        width: "100%",
+                        padding: "10px",
+                        fontSize: "11px",
+                        fontFamily: "var(--font-space-mono), 'Courier New', monospace",
+                        letterSpacing: "0.05em",
+                        background: "transparent",
+                        border: "1px solid var(--border)",
+                        borderRadius: "6px",
+                        color: "var(--text-muted)",
+                        cursor: "pointer",
+                        transition: "border-color 0.15s, color 0.15s",
+                      }}
+                      onMouseEnter={e => {
+                        (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-strong)";
+                        (e.currentTarget as HTMLButtonElement).style.color = "var(--text-secondary)";
+                      }}
+                      onMouseLeave={e => {
+                        (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
+                        (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)";
+                      }}
+                    >
+                      {timelineExpanded
+                        ? "↑ show less"
+                        : `↓ show ${state.timeline.length - 3} more events`}
+                    </button>
+                  )}
+                </motion.div>
+              )}
+
             </motion.div>
           )}
         </AnimatePresence>

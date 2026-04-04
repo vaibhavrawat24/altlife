@@ -1,121 +1,70 @@
 @import "tailwindcss";
 
-:root {
-  --bg: #f7f6f3;
-  --surface: #ffffff;
-  --border: #e8e6e0;
-  --border-strong: #d4d0c8;
-  --text: #1a1917;
-  --text-secondary: #6b6860;
-  --text-muted: #a09e99;
-  --accent: #5b45e0;
-  --accent-light: #ede9ff;
-  --accent-mid: #7c6df0;
+/* ── Light theme (default) ───────────────────────────────── */
+:root,
+[data-theme="light"] {
+  --bg:             #F5F0E8;
+  --surface:        #FEFCF8;
+  --border:         #E4D9CC;
+  --border-strong:  #C4B8A8;
+  --text:           #1C1510;
+  --text-secondary: #5C4F44;
+  --text-muted:     #9C8878;
+  --accent:         #5b45e0;
+  --accent-light:   #ede9ff;
+  --accent-mid:     #7c6df0;
+
+  --danger-bg:      #fff5f5;
+  --danger-border:  #fecaca;
+  --warning-bg:     #fffbeb;
+  --warning-border: #fcd34d;
+  --success-bg:     #f0fdf4;
+  --success-border: #bbf7d0;
+  --accent-surface: #faf8ff;
+  --accent-border:  #c7bfff;
+  --neutral-bg:     #f8fafc;
+  --neutral-border: #e2e8f0;
 }
+
+/* ── Dark theme ──────────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg:             #080608;
+  --surface:        #130F12;
+  --border:         rgba(255,255,255,0.09);
+  --border-strong:  rgba(255,255,255,0.18);
+  --text:           #EDE8DF;
+  --text-secondary: rgba(205,195,178,0.72);
+  --text-muted:     rgba(205,195,178,0.42);
+  --accent:         #a78bfa;
+  --accent-light:   rgba(139,92,246,0.18);
+  --accent-mid:     #c4b5fd;
+
+  --danger-bg:      rgba(239, 68,  68, 0.10);
+  --danger-border:  rgba(239, 68,  68, 0.30);
+  --warning-bg:     rgba(245,158,  11, 0.10);
+  --warning-border: rgba(245,158,  11, 0.30);
+  --success-bg:     rgba( 16,185, 129, 0.10);
+  --success-border: rgba( 16,185, 129, 0.30);
+  --accent-surface: rgba(139, 92, 246, 0.08);
+  --accent-border:  rgba(139, 92, 246, 0.35);
+  --neutral-bg:     rgba(255,255,255,  0.04);
+  --neutral-border: rgba(255,255,255,  0.10);
+}
+
+/* ── Base ────────────────────────────────────────────────── */
 
 * { box-sizing: border-box; }
 
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+  font-family: var(--font-space-mono), 'Courier New', monospace;
   -webkit-font-smoothing: antialiased;
+  transition: background 0.25s ease, color 0.25s ease;
 }
 
-::selection { background: #ede9ff; color: #3730a3; }
+::selection { background: var(--accent-light); color: var(--accent); }
 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
-
-/* ── Landing page card flip ──────────────────────────── */
-
-.lp-flip-card {
-  perspective: 1200px;
-  cursor: default;
-  height: 100%;
-}
-
-.lp-flip-inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
-  transform-style: preserve-3d;
-}
-
-.lp-flip-card:hover .lp-flip-inner {
-  transform: rotateY(180deg);
-}
-
-.lp-flip-front,
-.lp-flip-back {
-  position: absolute;
-  inset: 0;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  border-radius: 6px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  padding: clamp(12px, 1.5vw, 20px);
-  border: 1px solid #E2D9CC;
-}
-
-.lp-flip-front {
-  background: #FEFCF8;
-}
-
-.lp-flip-back {
-  background: #1C1814;
-  border-color: #2C2820;
-  transform: rotateY(180deg);
-}
-
-.lp-card-tag {
-  font-size: 9px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #B8AFA3;
-  margin-bottom: 10px;
-  font-family: var(--font-space-mono), monospace;
-}
-
-.lp-card-tag-back {
-  color: #4A4540;
-}
-
-.lp-card-front-title {
-  font-size: clamp(11px, 1.15vw, 15px);
-  font-weight: 700;
-  color: #1C1814;
-  line-height: 1.3;
-  letter-spacing: -0.02em;
-  font-family: var(--font-space-mono), monospace;
-}
-
-.lp-card-back-text {
-  font-size: clamp(10px, 0.95vw, 13px);
-  color: #C0B8AF;
-  line-height: 1.65;
-  white-space: pre-line;
-  letter-spacing: 0.01em;
-  font-family: var(--font-space-mono), monospace;
-}
-
-.lp-card-hint {
-  font-size: 9px;
-  color: #D0C8BE;
-  letter-spacing: 0.06em;
-  margin-top: auto;
-  padding-top: 10px;
-  font-family: var(--font-space-mono), monospace;
-}
-
-/* ── Landing page responsive ─────────────────────────── */
-
-@media (max-width: 768px) {
-  .lp-grid { display: none !important; }
-  .lp-mobile { display: flex !important; }
-}

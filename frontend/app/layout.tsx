@@ -19,7 +19,7 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Altlife — Simulate Your Decisions",
+  title: "altlife - Simulate Your Decisions",
   description: "Multi-agent AI simulation engine for life decisions.",
 };
 
@@ -31,9 +31,19 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${spaceMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {/* Runs before hydration — sets data-theme from localStorage to prevent flash */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          try {
+            var t = localStorage.getItem('altlife-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', t);
+          } catch(e) {}
+        `}} />
+        {children}
+      </body>
     </html>
   );
 }

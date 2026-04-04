@@ -190,6 +190,17 @@ export default function Home() {
   const themeRef = useRef<ThemeKey>(theme);
   themeRef.current = theme;
 
+  // sync with persisted preference on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('altlife-theme') as ThemeKey | null;
+      if (saved === 'dark' || saved === 'light') {
+        setTheme(saved);
+        themeRef.current = saved;
+      }
+    } catch { /* no localStorage */ }
+  }, []);
+
   const t = THEMES[theme];
 
   const handleSubmit = (e: { preventDefault(): void }) => {
@@ -228,7 +239,13 @@ export default function Home() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
           {/* theme toggle */}
           <button
-            onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
+            onClick={() => {
+              const next: ThemeKey = theme === 'light' ? 'dark' : 'light';
+              setTheme(next);
+              themeRef.current = next;
+              document.documentElement.setAttribute('data-theme', next);
+              try { localStorage.setItem('altlife-theme', next); } catch { /* no localStorage */ }
+            }}
             title={theme === 'light' ? 'Switch to dark' : 'Switch to light'}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',

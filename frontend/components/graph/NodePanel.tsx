@@ -15,9 +15,9 @@ const IMPACT_DOT: Record<string, string> = {
 };
 
 const IMPACT_BG: Record<string, string> = {
-  positive: "#f0fdf4",
-  negative: "#fff5f5",
-  neutral:  "#f8fafc",
+  positive: "var(--success-bg)",
+  negative: "var(--danger-bg)",
+  neutral:  "var(--neutral-bg)",
 };
 
 function EventItem({ event, color }: { event: SimulationEvent; color: string }) {
@@ -43,7 +43,7 @@ function EventItem({ event, color }: { event: SimulationEvent; color: string }) 
           )}
           {event.interacts_with && (
             <span className="text-xs px-1.5 py-0.5 rounded-full ml-auto"
-              style={{ background: "#ede9ff", color: "#5b45e0" }}>
+              style={{ background: "var(--accent-light)", color: "var(--accent)" }}>
               interacts
             </span>
           )}

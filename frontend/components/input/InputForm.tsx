@@ -6,6 +6,8 @@ interface InputFormProps {
   onSubmit: (profile: string, decision: string) => void;
 }
 
+const MONO = "var(--font-space-mono), 'Courier New', monospace";
+
 const RISK_OPTIONS = [
   { value: "conservative", label: "Conservative", desc: "Prefer stability" },
   { value: "balanced",     label: "Balanced",     desc: "Weigh both sides" },
@@ -24,26 +26,62 @@ const SUPPORT_OPTIONS = [
 const RUNWAY_LABELS = ["<1 month", "1–3 months", "3–6 months", "6–12 months", "1–2 years", "2+ years"];
 
 const NEXT_CHAPTER_OPTIONS = [
-  { value: "startup",    label: "Start a business",      icon: "🚀" },
-  { value: "travel",     label: "Travel / take time off", icon: "✈️" },
-  { value: "new_job",    label: "Move to a new job",      icon: "💼" },
-  { value: "study",      label: "Go back to school",      icon: "🎓" },
-  { value: "freelance",  label: "Freelance / consult",    icon: "💻" },
-  { value: "relocate",   label: "Relocate somewhere",     icon: "🌍" },
-  { value: "caregiving", label: "Family / caregiving",    icon: "❤️" },
-  { value: "undecided",  label: "Nothing planned yet",    icon: "🤷" },
+  { value: "startup",     label: "Start a business",       icon: "↗" },
+  { value: "travel",      label: "Travel / time off",      icon: "→" },
+  { value: "new_job",     label: "Move to a new job",      icon: "↑" },
+  { value: "freelance",   label: "Freelance / consult",    icon: "◈" },
+  { value: "relocate",    label: "Relocate somewhere",     icon: "⊕" },
+  { value: "caregiving",  label: "Family / caregiving",    icon: "♡" },
+  { value: "undecided",   label: "Nothing planned yet",    icon: "?" },
+  { value: "other",       label: "Something else",         icon: "+" },
 ];
 
+// ── Shared style helpers ──────────────────────────────────
+
+const sectionBox: React.CSSProperties = {
+  border: "1px solid var(--border)",
+  borderRadius: "8px",
+  padding: "20px",
+  marginBottom: "10px",
+  background: "var(--surface)",
+};
+
+const label: React.CSSProperties = {
+  display: "block",
+  fontSize: "10px",
+  fontFamily: MONO,
+  letterSpacing: "0.1em",
+  textTransform: "uppercase",
+  color: "var(--text-muted)",
+  marginBottom: "10px",
+};
+
+const fieldInput: React.CSSProperties = {
+  width: "100%",
+  padding: "10px 12px",
+  fontSize: "13px",
+  fontFamily: MONO,
+  background: "var(--bg)",
+  border: "1px solid var(--border)",
+  borderRadius: "6px",
+  color: "var(--text)",
+  outline: "none",
+  boxSizing: "border-box",
+  transition: "border-color 0.15s",
+};
+
+// ── Component ─────────────────────────────────────────────
+
 export default function InputForm({ onSubmit }: InputFormProps) {
-  const [decision, setDecision] = useState("");
-  const [age, setAge] = useState("");
-  const [role, setRole] = useState("");
-  const [location, setLocation] = useState("");
-  const [runwayIndex, setRunwayIndex] = useState(2);
-  const [riskTolerance, setRiskTolerance] = useState("balanced");
-  const [supportTags, setSupportTags] = useState<string[]>([]);
-  const [constraints, setConstraints] = useState("");
-  const [nextChapter, setNextChapter] = useState("");
+  const [decision,          setDecision]          = useState("");
+  const [age,               setAge]               = useState("");
+  const [role,              setRole]              = useState("");
+  const [location,          setLocation]          = useState("");
+  const [runwayIndex,       setRunwayIndex]       = useState(2);
+  const [riskTolerance,     setRiskTolerance]     = useState("balanced");
+  const [supportTags,       setSupportTags]       = useState<string[]>([]);
+  const [constraints,       setConstraints]       = useState("");
+  const [nextChapter,       setNextChapter]       = useState("");
   const [nextChapterDetail, setNextChapterDetail] = useState("");
 
   const toggleSupport = (tag: string) =>
@@ -54,42 +92,39 @@ export default function InputForm({ onSubmit }: InputFormProps) {
   const canSubmit = decision.trim().length > 10 && role.trim().length > 1;
 
   const handleSubmit = () => {
-    const profileParts: string[] = [];
-    if (age)      profileParts.push(`Age: ${age}`);
-    if (role)     profileParts.push(`Current situation: ${role}`);
-    if (location) profileParts.push(`Location: ${location}`);
-    profileParts.push(`Financial runway: ${RUNWAY_LABELS[runwayIndex]}`);
-    profileParts.push(`Risk tolerance: ${riskTolerance}`);
-    if (supportTags.length) profileParts.push(`Support system: ${supportTags.join(", ")}`);
-    if (constraints.trim()) profileParts.push(`Constraints: ${constraints}`);
+    const parts: string[] = [];
+    if (age)      parts.push(`Age: ${age}`);
+    if (role)     parts.push(`Current situation: ${role}`);
+    if (location) parts.push(`Location: ${location}`);
+    parts.push(`Financial runway: ${RUNWAY_LABELS[runwayIndex]}`);
+    parts.push(`Risk tolerance: ${riskTolerance}`);
+    if (supportTags.length) parts.push(`Support system: ${supportTags.join(", ")}`);
+    if (constraints.trim()) parts.push(`Constraints: ${constraints}`);
     if (nextChapter) {
-      const label = NEXT_CHAPTER_OPTIONS.find(o => o.value === nextChapter)?.label ?? nextChapter;
-      profileParts.push(`Plan after this decision: ${label}`);
+      const lbl = NEXT_CHAPTER_OPTIONS.find(o => o.value === nextChapter)?.label ?? nextChapter;
+      parts.push(`Plan after this decision: ${lbl}`);
     }
-    if (nextChapterDetail.trim()) profileParts.push(`Details about next chapter: ${nextChapterDetail}`);
-    onSubmit(profileParts.join(". "), decision.trim());
+    if (nextChapterDetail.trim()) parts.push(`Details about next chapter: ${nextChapterDetail}`);
+    onSubmit(parts.join(". "), decision.trim());
   };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-2xl mx-auto"
+      style={{ width: "100%", maxWidth: "640px", margin: "0 auto", fontFamily: MONO }}
     >
-      {/* Decision — hero input */}
-      <div className="mb-6">
-        <label className="block text-xs font-semibold uppercase tracking-widest mb-3"
-          style={{ color: "var(--text-muted)" }}>
-          What's the decision?
-        </label>
+      {/* ── Decision ──────────────────────────────────── */}
+      <div style={{ marginBottom: "10px" }}>
+        <span style={label}>What&apos;s the decision?</span>
         <textarea
           rows={3}
-          className="w-full rounded-2xl px-5 py-4 text-base border-2 resize-none focus:outline-none transition-all"
           style={{
-            background: "var(--surface)",
+            ...fieldInput,
+            resize: "none",
+            lineHeight: 1.6,
             borderColor: decision.length > 10 ? "var(--accent)" : "var(--border)",
-            color: "var(--text)",
-            boxShadow: decision.length > 10 ? "0 0 0 4px var(--accent-light)" : "none",
+            boxShadow: decision.length > 10 ? "0 0 0 3px var(--accent-light)" : "none",
           }}
           placeholder='e.g. "I am planning to leave my job and travel to Southeast Asia"'
           value={decision}
@@ -97,50 +132,58 @@ export default function InputForm({ onSubmit }: InputFormProps) {
         />
       </div>
 
-      {/* Next chapter — what are you moving toward? */}
-      <div className="rounded-2xl border p-6 mb-4 space-y-4"
-        style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
-        <div>
-          <p className="text-sm font-semibold mb-0.5" style={{ color: "var(--text)" }}>
-            What's the plan after?
-          </p>
-          <p className="text-xs mb-4" style={{ color: "var(--text-muted)" }}>
-            This changes which actors get spawned and how risks are calculated.
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {NEXT_CHAPTER_OPTIONS.map((opt) => {
-              const active = nextChapter === opt.value;
-              return (
-                <button key={opt.value} onClick={() => setNextChapter(active ? "" : opt.value)}
-                  className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border text-center transition-all"
-                  style={{
-                    background: active ? "var(--accent-light)" : "var(--bg)",
-                    borderColor: active ? "var(--accent)" : "var(--border)",
-                    color: active ? "var(--accent)" : "var(--text-secondary)",
-                  }}>
-                  <span className="text-xl">{opt.icon}</span>
-                  <span className="text-xs font-medium leading-tight">{opt.label}</span>
-                </button>
-              );
-            })}
-          </div>
+      {/* ── Next chapter ──────────────────────────────── */}
+      <div style={sectionBox}>
+        <span style={label}>What&apos;s the plan after?</span>
+        <p style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: MONO, marginBottom: "14px" }}>
+          This changes which actors get spawned and how risks are calculated.
+        </p>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: "6px",
+        }}>
+          {NEXT_CHAPTER_OPTIONS.map((opt) => {
+            const active = nextChapter === opt.value;
+            return (
+              <button key={opt.value}
+                onClick={() => setNextChapter(active ? "" : opt.value)}
+                style={{
+                  display: "flex", flexDirection: "column",
+                  alignItems: "center", gap: "6px",
+                  padding: "12px 8px",
+                  border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
+                  borderRadius: "6px",
+                  background: active ? "var(--accent-light)" : "var(--bg)",
+                  color: active ? "var(--accent)" : "var(--text-secondary)",
+                  cursor: "pointer",
+                  fontFamily: MONO,
+                  transition: "all 0.15s",
+                }}>
+                <span style={{ fontSize: "16px", lineHeight: 1 }}>{opt.icon}</span>
+                <span style={{ fontSize: "10px", textAlign: "center", lineHeight: 1.3 }}>{opt.label}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Optional detail about next chapter */}
         {nextChapter && nextChapter !== "undecided" && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}>
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            style={{ marginTop: "10px" }}
+          >
             <input
               type="text"
-              className="w-full rounded-xl px-3 py-2.5 text-sm border focus:outline-none focus:border-violet-400 transition-all"
-              style={{ background: "var(--bg)", borderColor: "var(--border)", color: "var(--text)" }}
+              style={fieldInput}
               placeholder={
-                nextChapter === "startup"   ? "e.g. already have 200 users, B2B fintech idea" :
-                nextChapter === "travel"    ? "e.g. 6 months, Southeast Asia, leave in 3 weeks" :
-                nextChapter === "new_job"   ? "e.g. offer at a competitor, 30% raise" :
-                nextChapter === "study"     ? "e.g. MBA, part-time, already accepted" :
-                nextChapter === "freelance" ? "e.g. 2 clients lined up, design work" :
-                nextChapter === "relocate"  ? "e.g. moving to Berlin, have a job offer" :
-                nextChapter === "caregiving"? "e.g. newborn, aging parent, 6 months leave" :
+                nextChapter === "startup"    ? "e.g. already have 200 users, B2B fintech idea" :
+                nextChapter === "travel"     ? "e.g. 6 months, Southeast Asia, leave in 3 weeks" :
+                nextChapter === "new_job"    ? "e.g. offer at a competitor, 30% raise" :
+                nextChapter === "freelance"  ? "e.g. 2 clients lined up, design work" :
+                nextChapter === "relocate"   ? "e.g. moving to Berlin, have a job offer" :
+                nextChapter === "caregiving" ? "e.g. newborn, aging parent, 6 months leave" :
+                nextChapter === "other"      ? "describe your plan..." :
                 "Tell us more..."
               }
               value={nextChapterDetail}
@@ -150,106 +193,122 @@ export default function InputForm({ onSubmit }: InputFormProps) {
         )}
       </div>
 
-      {/* About you */}
-      <div className="rounded-2xl border p-6 mb-4 space-y-5"
-        style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
-        <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>About you</p>
+      {/* ── About you ─────────────────────────────────── */}
+      <div style={sectionBox}>
+        <span style={label}>About you</span>
 
-        {/* Age + Role + Location */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* Age + Role */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "8px" }}>
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
-              Age
-            </label>
+            <p style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: MONO, marginBottom: "6px" }}>Age</p>
             <input type="number" min={16} max={80}
-              className="w-full rounded-xl px-3 py-2.5 text-sm border focus:outline-none focus:border-violet-400 transition-all"
-              style={{ background: "var(--bg)", borderColor: "var(--border)", color: "var(--text)" }}
+              style={fieldInput}
               placeholder="e.g. 28"
-              value={age} onChange={(e) => setAge(e.target.value)} />
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+            />
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
-              Current situation
-            </label>
+            <p style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: MONO, marginBottom: "6px" }}>Current situation</p>
             <input type="text"
-              className="w-full rounded-xl px-3 py-2.5 text-sm border focus:outline-none focus:border-violet-400 transition-all"
-              style={{ background: "var(--bg)", borderColor: "var(--border)", color: "var(--text)" }}
+              style={fieldInput}
               placeholder="e.g. nurse, student, freelancer"
-              value={role} onChange={(e) => setRole(e.target.value)} />
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+            />
           </div>
         </div>
 
-        <div>
-          <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
-            Where are you based? <span className="font-normal opacity-60">(city / country)</span>
-          </label>
+        {/* Location */}
+        <div style={{ marginBottom: "18px" }}>
+          <p style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: MONO, marginBottom: "6px" }}>
+            Where are you based?
+          </p>
           <input type="text"
-            className="w-full rounded-xl px-3 py-2.5 text-sm border focus:outline-none focus:border-violet-400 transition-all"
-            style={{ background: "var(--bg)", borderColor: "var(--border)", color: "var(--text)" }}
+            style={fieldInput}
             placeholder="e.g. London, UK · Chicago, US · Mumbai, India"
-            value={location} onChange={(e) => setLocation(e.target.value)} />
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+          />
         </div>
 
         {/* Financial runway */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-              Financial runway
-            </label>
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full"
-              style={{ background: "var(--accent-light)", color: "var(--accent)" }}>
+        <div style={{ marginBottom: "18px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+            <p style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: MONO }}>Financial runway</p>
+            <span style={{
+              fontSize: "10px", fontFamily: MONO,
+              padding: "2px 10px",
+              border: "1px solid var(--accent-border)",
+              borderRadius: "4px",
+              background: "var(--accent-light)",
+              color: "var(--accent)",
+            }}>
               {RUNWAY_LABELS[runwayIndex]}
             </span>
           </div>
           <input type="range" min={0} max={5} step={1}
             value={runwayIndex}
             onChange={(e) => setRunwayIndex(Number(e.target.value))}
-            className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
-            style={{ accentColor: "var(--accent)", background: "var(--border)" }} />
-          <div className="flex justify-between mt-1">
-            <span className="text-xs" style={{ color: "var(--text-muted)" }}>Tight</span>
-            <span className="text-xs" style={{ color: "var(--text-muted)" }}>Comfortable</span>
+            style={{ width: "100%", accentColor: "var(--accent)", cursor: "pointer" }}
+          />
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px" }}>
+            <span style={{ fontSize: "10px", color: "var(--text-muted)", fontFamily: MONO }}>Tight</span>
+            <span style={{ fontSize: "10px", color: "var(--text-muted)", fontFamily: MONO }}>Comfortable</span>
           </div>
         </div>
 
         {/* Risk tolerance */}
-        <div>
-          <label className="block text-xs font-medium mb-2.5" style={{ color: "var(--text-secondary)" }}>
-            Risk tolerance
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            {RISK_OPTIONS.map((opt) => (
-              <button key={opt.value} onClick={() => setRiskTolerance(opt.value)}
-                className="py-2.5 px-3 rounded-xl border text-left transition-all"
-                style={{
-                  background: riskTolerance === opt.value ? "var(--accent-light)" : "var(--bg)",
-                  borderColor: riskTolerance === opt.value ? "var(--accent)" : "var(--border)",
-                  color: riskTolerance === opt.value ? "var(--accent)" : "var(--text-secondary)",
-                }}>
-                <div className="text-xs font-semibold">{opt.label}</div>
-                <div className="text-xs opacity-70 mt-0.5">{opt.desc}</div>
-              </button>
-            ))}
+        <div style={{ marginBottom: "18px" }}>
+          <p style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: MONO, marginBottom: "10px" }}>Risk tolerance</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "6px" }}>
+            {RISK_OPTIONS.map((opt) => {
+              const active = riskTolerance === opt.value;
+              return (
+                <button key={opt.value}
+                  onClick={() => setRiskTolerance(opt.value)}
+                  style={{
+                    padding: "10px 12px",
+                    border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
+                    borderRadius: "6px",
+                    background: active ? "var(--accent-light)" : "var(--bg)",
+                    color: active ? "var(--accent)" : "var(--text-secondary)",
+                    cursor: "pointer",
+                    fontFamily: MONO,
+                    textAlign: "left",
+                    transition: "all 0.15s",
+                  }}>
+                  <div style={{ fontSize: "11px", fontWeight: 700 }}>{opt.label}</div>
+                  <div style={{ fontSize: "10px", opacity: 0.7, marginTop: "2px" }}>{opt.desc}</div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* Support system */}
-        <div>
-          <label className="block text-xs font-medium mb-2.5" style={{ color: "var(--text-secondary)" }}>
-            Support system <span className="font-normal opacity-60">(select all that apply)</span>
-          </label>
-          <div className="flex flex-wrap gap-2">
+        <div style={{ marginBottom: "18px" }}>
+          <p style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: MONO, marginBottom: "10px" }}>
+            Support system <span style={{ opacity: 0.6 }}>(select all that apply)</span>
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
             {SUPPORT_OPTIONS.map((tag) => {
               const active = supportTags.includes(tag);
               return (
-                <button key={tag} onClick={() => toggleSupport(tag)}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium border transition-all"
+                <button key={tag}
+                  onClick={() => toggleSupport(tag)}
                   style={{
+                    padding: "6px 12px",
+                    border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
+                    borderRadius: "4px",
                     background: active ? "var(--accent-light)" : "var(--bg)",
-                    borderColor: active ? "var(--accent)" : "var(--border)",
                     color: active ? "var(--accent)" : "var(--text-secondary)",
+                    cursor: "pointer",
+                    fontFamily: MONO,
+                    fontSize: "11px",
+                    transition: "all 0.15s",
                   }}>
-                  {active && <span className="mr-1">✓</span>}
+                  {active && <span style={{ marginRight: "4px" }}>✓</span>}
                   {tag}
                 </button>
               );
@@ -259,30 +318,52 @@ export default function InputForm({ onSubmit }: InputFormProps) {
 
         {/* Constraints */}
         <div>
-          <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
-            Key constraints <span className="font-normal opacity-60">(optional)</span>
-          </label>
+          <p style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: MONO, marginBottom: "6px" }}>
+            Key constraints <span style={{ opacity: 0.6 }}>(optional)</span>
+          </p>
           <input type="text"
-            className="w-full rounded-xl px-3 py-2.5 text-sm border focus:outline-none focus:border-violet-400 transition-all"
-            style={{ background: "var(--bg)", borderColor: "var(--border)", color: "var(--text)" }}
+            style={fieldInput}
             placeholder="e.g. visa restrictions, family obligations, health condition, debt"
-            value={constraints} onChange={(e) => setConstraints(e.target.value)} />
+            value={constraints}
+            onChange={(e) => setConstraints(e.target.value)}
+          />
         </div>
       </div>
 
-      {/* Submit */}
-      <button onClick={handleSubmit} disabled={!canSubmit}
-        className="w-full py-4 rounded-2xl text-white font-semibold text-base transition-all disabled:opacity-30 disabled:cursor-not-allowed mt-2"
+      {/* ── Submit ────────────────────────────────────── */}
+      <button
+        onClick={handleSubmit}
+        disabled={!canSubmit}
         style={{
+          width: "100%",
+          padding: "14px",
+          fontFamily: MONO,
+          fontSize: "13px",
+          fontWeight: 700,
+          letterSpacing: "0.05em",
+          borderRadius: "6px",
+          border: "none",
+          cursor: canSubmit ? "pointer" : "not-allowed",
           background: canSubmit
-            ? "linear-gradient(135deg, var(--accent), var(--accent-mid))"
+            ? "var(--accent)"
             : "var(--border-strong)",
-          boxShadow: canSubmit ? "0 4px 20px rgba(91,69,224,0.35)" : "none",
-        }}>
+          color: canSubmit ? "#fff" : "var(--text-muted)",
+          opacity: canSubmit ? 1 : 0.5,
+          transition: "all 0.15s",
+          marginBottom: "2px",
+        }}
+      >
         Run Simulation ⚡
       </button>
 
-      <p className="text-center text-xs mt-3" style={{ color: "var(--text-muted)" }}>
+      <p style={{
+        textAlign: "center",
+        fontSize: "10px",
+        color: "var(--text-muted)",
+        fontFamily: MONO,
+        marginTop: "10px",
+        letterSpacing: "0.04em",
+      }}>
         Takes ~30–45 seconds · Checks live world conditions · Not financial or legal advice
       </p>
     </motion.div>
