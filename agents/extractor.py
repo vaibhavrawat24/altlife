@@ -1,5 +1,6 @@
 from services.llm import call_llm
 from models.schemas import ExtractedProfile
+from agents.json_utils import extract_json_from_response
 import json
 
 EXTRACTOR_PROMPT = """
@@ -16,11 +17,18 @@ Return ONLY valid JSON matching this exact schema:
   "risk_tolerance": "low | medium | high | null (infer from context if not stated)",
   "constraints": ["list", "of", "constraints"],
   "key_assets": ["list", "of", "strengths or assets"],
-  "decision_domain": "one of: startup | career | relocation | relationship | education | financial | lifestyle | other",
-  "decision_summary": "one sentence summary of the core decision"
+  "decision_domain": "one of: startup | career | relocation | travel | relationship | education | financial | health | lifestyle | other",
+  "decision_summary": "one sentence summary of the core decision",
+  "next_chapter": "null or one of: startup | travel | new_job | study | freelance | relocate | caregiving | undecided",
+  "next_chapter_detail": "null or brief description of what they plan to do after the decision",
+  "location": "null or city/country if mentioned"
 }
 
-Be specific. Infer reasonably from context. If something is truly unknown, use null.
+Rules:
+- decision_domain should reflect the PRIMARY nature of the decision
+- If travel is involved (trip, moving abroad, visiting a country) use 'travel' or 'relocation'
+- next_chapter captures what they're moving TOWARD — extract from context if stated
+- Be specific. Infer reasonably from context. If something is truly unknown, use null.
 Do not include any text outside the JSON.
 """
 
@@ -35,10 +43,22 @@ async def extract_profile(profile: str, decision: str) -> ExtractedProfile:
         model="gpt-4o-mini",
     )
     raw = result["response"]
-    # Strip markdown code fences if present
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-    data = json.loads(raw.strip())
-    return ExtractedProfile(**data)
+    
+    data = extract_json_from_response(raw, "Extractor")
+    
+    if "error" in data:
+        print(f"Extractor: Using fallback profile due to: {data['error']}")
+        return ExtractedProfile(
+            decision_summary="Unable to parse profile",
+            decision_domain="other"
+        )
+    
+    try:
+        return ExtractedProfile(**data)
+    except Exception as e:
+        print(f"Extractor: Failed to create ExtractedProfile from data: {e}")
+        print(f"  Data keys: {list(data.keys())}")
+        return ExtractedProfile(
+            decision_summary="Unable to create profile",
+            decision_domain="other"
+        )

@@ -7,9 +7,11 @@ class DecisionDomain(str, Enum):
     startup = "startup"
     career = "career"
     relocation = "relocation"
+    travel = "travel"
     relationship = "relationship"
     education = "education"
     financial = "financial"
+    health = "health"
     lifestyle = "lifestyle"
     other = "other"
 
@@ -25,6 +27,9 @@ class ExtractedProfile(BaseModel):
     key_assets: List[str] = []
     decision_domain: DecisionDomain = DecisionDomain.other
     decision_summary: str
+    next_chapter: Optional[str] = None
+    next_chapter_detail: Optional[str] = None
+    location: Optional[str] = None
 
 
 class TimelineEvent(BaseModel):

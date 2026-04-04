@@ -67,9 +67,19 @@ export interface SynthesisResult {
   agent_consensus: string;
 }
 
+export interface RealityCheck {
+  severity: "low" | "medium" | "high" | "critical";
+  severity_reason: string;
+  hard_constraints: string[];
+  risk_flags: Record<string, string | null>;
+  domain_flags: string[];
+  facts_found: number;
+}
+
 export interface SimulationState {
   phase: SimulationPhase;
   profile: ExtractedProfile | null;
+  reality: RealityCheck | null;
   nodes: GraphNode[];
   edges: GraphEdge[];
   timeline: SimulationEvent[];

@@ -4,6 +4,7 @@ Now generates events WITH interactions (edges) to other actors.
 """
 import json
 from services.llm import call_llm
+from agents.json_utils import extract_json_from_response
 from typing import Any, Dict, List
 
 ACTOR_PROMPT_TEMPLATE = """
@@ -87,16 +88,15 @@ async def run_actor(
     )
 
     raw = result["response"]
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-    try:
-        return json.loads(raw.strip())
-    except json.JSONDecodeError:
+    parsed = extract_json_from_response(raw, actor["name"])
+    
+    if "error" in parsed:
+        print(f"Actor {actor['name']}: {parsed['error']}, returning empty response")
         return {
             "actor": actor["name"],
             "actor_id": actor["id"],
             "stance": actor.get("stance", ""),
             "events": [],
         }
+    
+    return parsed

@@ -1,5 +1,6 @@
 import json
 from services.llm import call_llm
+from agents.json_utils import extract_json_from_response
 from typing import Any, Dict, List
 
 SYNTHESIZER_PROMPT = """
@@ -41,17 +42,60 @@ async def synthesize(
     decision: str,
 ) -> Dict[str, Any]:
     # Build a readable event log to feed the synthesizer
-    event_log = []
+    # NOTE: GitHub gpt-4o endpoint can reject large request bodies (413, ~8k-token limit).
+    # We prioritize critical events and cap payload size before sending.
+    MAX_EVENTS_FOR_SYNTHESIS = 70
+    MAX_EVENT_LOG_CHARS = 12000
+
+    event_rows = []
     for actor_data in events_by_actor:
         actor_name = actor_data.get("actor", "Unknown")
         for ev in actor_data.get("events", []):
-            event_log.append(
-                f"Month {ev.get('month', '?')} | {actor_name}: {ev.get('event', '')} "
-                f"[{ev.get('impact', '')}] {ev.get('financial_delta', '') or ''} — {ev.get('detail', '')}"
+            month = ev.get("month", 99)
+            impact = ev.get("impact", "")
+            financial = ev.get("financial_delta", "") or ""
+            line = (
+                f"Month {month} | {actor_name}: {ev.get('event', '')} "
+                f"[{impact}] {financial} — {ev.get('detail', '')}"
             )
 
-    event_log.sort()  # sorts by "Month X" prefix
-    event_log_text = "\n".join(event_log)
+            priority = 0
+            if impact == "negative":
+                priority += 4
+            elif impact == "positive":
+                priority += 2
+            if financial:
+                priority += 3
+            if month in (1, 2, 11, 12):
+                priority += 2
+
+            event_rows.append({
+                "month": month if isinstance(month, int) else 99,
+                "priority": priority,
+                "line": line,
+            })
+
+    # Keep highest-priority rows, then restore chronological order.
+    event_rows.sort(key=lambda r: (r["priority"], -r["month"]), reverse=True)
+    event_rows = event_rows[:MAX_EVENTS_FOR_SYNTHESIS]
+    event_rows.sort(key=lambda r: r["month"])
+
+    # Hard cap by characters to avoid model request-size errors.
+    event_log_lines = []
+    char_count = 0
+    for row in event_rows:
+        line = row["line"]
+        projected = char_count + len(line) + 1
+        if projected > MAX_EVENT_LOG_CHARS:
+            break
+        event_log_lines.append(line)
+        char_count = projected
+
+    event_log_text = "\n".join(event_log_lines)
+    print(
+        f"[Synthesizer] events_in={sum(len(a.get('events', [])) for a in events_by_actor)} "
+        f"selected={len(event_rows)} emitted={len(event_log_lines)} chars={len(event_log_text)}"
+    )
 
     context = {
         "profile": profile_summary,
@@ -64,15 +108,13 @@ async def synthesize(
         history=[],
         max_tokens=2000,
         agent_name="Synthesizer",
-        model="gpt-4o",
+        model="gpt-4o-mini",
     )
 
     raw = result["response"]
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-    try:
-        return json.loads(raw.strip())
-    except json.JSONDecodeError:
-        return {"verdict": "Synthesis failed.", "raw": raw[:500]}
+    
+    parsed = extract_json_from_response(raw, "Synthesizer")
+    if "error" in parsed:
+        return {"verdict": "Synthesis failed.", "error_message": parsed["error"]}
+    
+    return parsed

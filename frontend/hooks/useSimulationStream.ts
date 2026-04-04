@@ -2,9 +2,24 @@
 import { useState, useCallback } from "react";
 import { SimulationState, GraphEdge, SimulationEvent } from "@/types/simulation";
 
+function normalizeSynthesis(data: any) {
+  return {
+    verdict: data?.verdict ?? "No verdict generated.",
+    most_likely_outcome: data?.most_likely_outcome ?? "",
+    turning_points: Array.isArray(data?.turning_points) ? data.turning_points : [],
+    key_risks: Array.isArray(data?.key_risks) ? data.key_risks : [],
+    key_opportunities: Array.isArray(data?.key_opportunities) ? data.key_opportunities : [],
+    risk_score: typeof data?.risk_score === "number" ? data.risk_score : 50,
+    first_step: data?.first_step ?? "",
+    conditions_for_success: data?.conditions_for_success ?? "",
+    agent_consensus: data?.agent_consensus ?? "",
+  };
+}
+
 const INITIAL: SimulationState = {
   phase: "idle",
   profile: null,
+  reality: null,
   nodes: [],
   edges: [],
   timeline: [],
@@ -63,6 +78,10 @@ export function useSimulationStream() {
         setState((s) => ({ ...s, profile: event.data, phase: "building_world" }));
         break;
 
+      case "reality_checked":
+        setState((s) => ({ ...s, reality: event.data }));
+        break;
+
       case "graph_ready":
         setState((s) => ({
           ...s,
@@ -114,7 +133,7 @@ export function useSimulationStream() {
         break;
 
       case "synthesis_complete":
-        setState((s) => ({ ...s, synthesis: event.data, phase: "complete" }));
+        setState((s) => ({ ...s, synthesis: normalizeSynthesis(event.data), phase: "complete" }));
         break;
 
       case "error":

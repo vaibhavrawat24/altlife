@@ -84,6 +84,52 @@ export default function SimulatePage() {
                 </motion.div>
               )}
 
+              {/* Reality check alert */}
+              {state.reality && state.reality.hard_constraints.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                  className="rounded-xl border p-4"
+                  style={{
+                    background: state.reality.severity === "critical" ? "#fff5f5"
+                      : state.reality.severity === "high" ? "#fffbeb"
+                      : "var(--surface)",
+                    borderColor: state.reality.severity === "critical" ? "#fca5a5"
+                      : state.reality.severity === "high" ? "#fcd34d"
+                      : "var(--border)",
+                  }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm">
+                      {state.reality.severity === "critical" ? "🚨"
+                        : state.reality.severity === "high" ? "⚠️"
+                        : "ℹ️"}
+                    </span>
+                    <span className="text-xs font-semibold uppercase tracking-widest"
+                      style={{
+                        color: state.reality.severity === "critical" ? "#ef4444"
+                          : state.reality.severity === "high" ? "#d97706"
+                          : "var(--text-secondary)",
+                      }}>
+                      Real-world check · {state.reality.severity} severity
+                    </span>
+                    <span className="text-xs ml-auto" style={{ color: "var(--text-muted)" }}>
+                      {state.reality.facts_found} sources
+                    </span>
+                  </div>
+                  <ul className="space-y-1">
+                    {state.reality.hard_constraints.map((c, i) => (
+                      <li key={i} className="text-sm flex gap-2" style={{ color: "var(--text)" }}>
+                        <span style={{ color: "var(--text-muted)" }}>•</span>{c}
+                      </li>
+                    ))}
+                  </ul>
+                  {state.reality.severity_reason && (
+                    <p className="text-xs mt-2 italic" style={{ color: "var(--text-muted)" }}>
+                      {state.reality.severity_reason}
+                    </p>
+                  )}
+                </motion.div>
+              )}
+
               {/* Graph */}
               <div className="relative">
                 <SimulationGraph state={state} onNodeClick={handleNodeClick} />
@@ -230,7 +276,7 @@ export default function SimulatePage() {
                       style={{ background: "#fff5f5", borderColor: "#fecaca" }}>
                       <p className="text-xs font-semibold uppercase tracking-widest mb-3"
                         style={{ color: "#ef4444" }}>Key Risks</p>
-                      {state.synthesis.key_risks.map((r, i) => (
+                      {(state.synthesis.key_risks ?? []).map((r, i) => (
                         <p key={i} className="text-sm mb-1.5 flex gap-2"
                           style={{ color: "var(--text-secondary)" }}>
                           <span style={{ color: "#ef4444" }}>•</span>{r}
@@ -242,7 +288,7 @@ export default function SimulatePage() {
                       style={{ background: "#f0fdf4", borderColor: "#bbf7d0" }}>
                       <p className="text-xs font-semibold uppercase tracking-widest mb-3"
                         style={{ color: "#10b981" }}>Key Opportunities</p>
-                      {state.synthesis.key_opportunities.map((o, i) => (
+                      {(state.synthesis.key_opportunities ?? []).map((o, i) => (
                         <p key={i} className="text-sm mb-1.5 flex gap-2"
                           style={{ color: "var(--text-secondary)" }}>
                           <span style={{ color: "#10b981" }}>•</span>{o}

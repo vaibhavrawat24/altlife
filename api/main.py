@@ -36,6 +36,9 @@ async def simulate_stream(req: SimulateRequest):
                 yield f"data: {event_json}\n\n"
         except Exception as e:
             import json
+            import traceback
+            print("[API] /simulate/stream ERROR")
+            print(traceback.format_exc())
             yield f"data: {json.dumps({'type': 'error', 'data': {'message': str(e)}})}\n\n"
 
     return StreamingResponse(
