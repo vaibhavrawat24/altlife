@@ -19,8 +19,58 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "altlife - Simulate Your Decisions",
-  description: "Multi-agent AI simulation engine for life decisions.",
+  title: "altlife - Simulate Your Life Decisions with AI",
+  description: "altlife uses a network of AI agents to simulate how your life decisions play out - quitting your job, moving abroad, starting a business, and more. Get a 12-month projection in seconds.",
+  keywords: [
+    "life decision simulator",
+    "AI life simulator",
+    "simulate future",
+    "predict life outcomes",
+    "AI agents simulation",
+    "multi-agent AI",
+    "what if simulator",
+    "career decision tool",
+    "quit job simulator",
+    "life planning AI",
+    "simulate your decision",
+    "AI future prediction",
+    "spawn agents",
+    "decision making tool",
+  ],
+  authors: [{ name: "altlife" }],
+  creator: "altlife",
+  metadataBase: new URL("https://altlife.vercel.app"),
+  openGraph: {
+    title: "altlife - Simulate Your Life Decisions with AI",
+    description: "A network of AI agents simulates how your decisions unfold over 12 months. Try quitting your job, moving abroad, or starting a business.",
+    url: "https://altlife.vercel.app",
+    siteName: "altlife",
+    type: "website",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "altlife - AI Life Decision Simulator",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "altlife — Simulate Your Life Decisions with AI",
+    description: "A network of AI agents simulates how your decisions unfold over 12 months.",
+    images: ["/og-image.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-snippet": -1,
+      "max-image-preview": "large",
+    },
+  },
 };
 
 export default function RootLayout({

@@ -18,7 +18,7 @@ const THEMES = {
     inputBgFocus:     'rgba(255,255,255,0.85)',
     inputBorder:      'rgba(55,42,30,0.15)',
     inputBorderFocus: 'rgba(55,42,30,0.35)',
-    footnoteColor:    'rgba(55,42,30,0.25)',
+    footnoteColor:    'rgba(55,42,30,0.55)',
   },
   dark: {
     bg:               '#080608',
@@ -31,7 +31,7 @@ const THEMES = {
     inputBgFocus:     'rgba(255,255,255,0.08)',
     inputBorder:      'rgba(255,255,255,0.1)',
     inputBorderFocus: 'rgba(205,195,178,0.4)',
-    footnoteColor:    'rgba(205,195,178,0.2)',
+    footnoteColor:    'rgba(205,195,178,0.6)',
   },
 } as const;
 
