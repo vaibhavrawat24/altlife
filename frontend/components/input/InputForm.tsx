@@ -85,15 +85,22 @@ export default function InputForm({ onSubmit }: InputFormProps) {
   const [constraints,       setConstraints]       = useState("");
   const [nextChapter,       setNextChapter]       = useState("");
   const [nextChapterDetail, setNextChapterDetail] = useState("");
+  const [attempted,         setAttempted]         = useState(false);
 
   const toggleSupport = (tag: string) =>
     setSupportTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
 
-  const canSubmit = decision.trim().length > 10 && role.trim().length > 1;
+  const decisionOk = decision.trim().length > 10;
+  const roleOk     = role.trim().length > 1;
+  const canSubmit  = decisionOk && roleOk;
 
   const handleSubmit = () => {
+    if (!canSubmit) {
+      setAttempted(true);
+      return;
+    }
     const parts: string[] = [];
     if (age)      parts.push(`Age: ${age}`);
     if (role)     parts.push(`Current situation: ${role}`);
@@ -125,12 +132,12 @@ export default function InputForm({ onSubmit }: InputFormProps) {
             ...fieldInput,
             resize: "none",
             lineHeight: 1.6,
-            borderColor: decision.length > 10 ? "var(--accent)" : "var(--border)",
-            boxShadow: decision.length > 10 ? "0 0 0 3px var(--accent-light)" : "none",
+            borderColor: attempted && !decisionOk ? "#ef4444" : decision.length > 10 ? "var(--accent)" : "var(--border)",
+            boxShadow: attempted && !decisionOk ? "0 0 0 3px rgba(239,68,68,0.15)" : decision.length > 10 ? "0 0 0 3px var(--accent-light)" : "none",
           }}
           placeholder='e.g. "I am planning to leave my job and travel to Southeast Asia"'
           value={decision}
-          onChange={(e) => setDecision(e.target.value)}
+          onChange={(e) => { setDecision(e.target.value); if (attempted) setAttempted(false); }}
         />
       </div>
 
@@ -211,12 +218,16 @@ export default function InputForm({ onSubmit }: InputFormProps) {
             />
           </div>
           <div>
-            <p style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: MONO, marginBottom: "6px" }}>Current situation</p>
+            <p style={{ fontSize: "11px", color: attempted && !roleOk ? "#ef4444" : "var(--text-muted)", fontFamily: MONO, marginBottom: "6px" }}>Current situation</p>
             <input type="text"
-              style={fieldInput}
+              style={{
+                ...fieldInput,
+                borderColor: attempted && !roleOk ? "#ef4444" : "var(--border)",
+                boxShadow: attempted && !roleOk ? "0 0 0 3px rgba(239,68,68,0.15)" : "none",
+              }}
               placeholder="e.g. nurse, student, freelancer"
               value={role}
-              onChange={(e) => setRole(e.target.value)}
+              onChange={(e) => { setRole(e.target.value); if (attempted) setAttempted(false); }}
             />
           </div>
         </div>
@@ -332,10 +343,26 @@ export default function InputForm({ onSubmit }: InputFormProps) {
         </div>
       </div>
 
+      {/* ── Validation alert ──────────────────────────── */}
+      {attempted && !canSubmit && (
+        <div style={{
+          marginBottom: "10px",
+          padding: "10px 14px",
+          borderRadius: "6px",
+          border: "1px solid #fecaca",
+          background: "var(--danger-bg)",
+          fontSize: "11px",
+          fontFamily: MONO,
+          color: "#ef4444",
+          letterSpacing: "0.02em",
+        }}>
+          fill in the required fields for a better simulation
+        </div>
+      )}
+
       {/* ── Submit ────────────────────────────────────── */}
       <button
         onClick={handleSubmit}
-        disabled={!canSubmit}
         style={{
           width: "100%",
           padding: "14px",
@@ -345,13 +372,10 @@ export default function InputForm({ onSubmit }: InputFormProps) {
           letterSpacing: "0.05em",
           borderRadius: "6px",
           border: "none",
-          cursor: canSubmit ? "pointer" : "not-allowed",
-          background: canSubmit
-            ? "var(--accent)"
-            : "var(--border-strong)",
-          color: canSubmit ? "#fff" : "var(--text-muted)",
-          opacity: canSubmit ? 1 : 0.5,
-          transition: "all 0.15s",
+          cursor: "pointer",
+          background: "var(--accent)",
+          color: "#fff",
+          transition: "opacity 0.15s",
           marginBottom: "2px",
         }}
       >

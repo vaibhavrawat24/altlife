@@ -54,7 +54,10 @@ export function useSimulationStream() {
     }
 
     if (!response.ok || !response.body) {
-      setState((s) => ({ ...s, phase: "error", error: "Server returned an error." }));
+      const isProd = !!process.env.NEXT_PUBLIC_API_URL;
+      setState((s) => ({ ...s, phase: "error", error: isProd
+        ? "Our servers are handling a high volume of traffic right now. Please retry in a few hours."
+        : "Server returned an error." }));
       return;
     }
 
