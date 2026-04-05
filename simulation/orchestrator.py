@@ -173,8 +173,8 @@ class SimulationOrchestrator:
             # Merge reality constraints + actor facts into one context block
             combined_facts = "\n\n".join(filter(None, [reality_text, facts_text]))
 
-            # 4. Run ALL actors — max 4 concurrent to stay within GitHub Models rate limit
-            semaphore = asyncio.Semaphore(4)
+            # 4. Run ALL actors — max 3 concurrent to stay within GitHub Models rate limit
+            semaphore = asyncio.Semaphore(3)
 
             async def run_with_semaphore(actor):
                 async with semaphore:

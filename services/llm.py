@@ -1,5 +1,6 @@
 import os
-from openai import AsyncOpenAI
+import asyncio
+from openai import AsyncOpenAI, RateLimitError
 from typing import Any, Dict, List
 
 # Supports two modes via LLM_PROVIDER env var:
@@ -41,13 +42,20 @@ async def call_llm(
             {"role": "assistant", "content": f"{h['agent']}: {h['response']}"}
         )
 
-    response = await client.chat.completions.create(
-        model=model or DEFAULT_MODEL,
-        messages=messages,
-        max_tokens=max_tokens,
-        temperature=0.7,
-    )
-    return {
-        "agent": agent_name,
-        "response": response.choices[0].message.content.strip(),
-    }
+    for attempt in range(4):
+        try:
+            response = await client.chat.completions.create(
+                model=model or DEFAULT_MODEL,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=0.7,
+            )
+            return {
+                "agent": agent_name,
+                "response": response.choices[0].message.content.strip(),
+            }
+        except RateLimitError:
+            if attempt == 3:
+                raise
+            wait = 2 ** attempt  # 1s, 2s, 4s
+            await asyncio.sleep(wait)
