@@ -1,3 +1,13 @@
+---
+title: Altlife
+emoji: 🔀
+colorFrom: purple
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Altlife - Future Simulation Engine
 
 ## Overview
