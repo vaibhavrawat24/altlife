@@ -1,0 +1,21 @@
+name: Deploy to HuggingFace Spaces
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Push to HuggingFace Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git remote add hf https://stfuvaibhav:$HF_TOKEN@huggingface.co/spaces/stfuvaibhav/altlife
+          git push hf main --force
