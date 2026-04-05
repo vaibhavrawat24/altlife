@@ -36,6 +36,9 @@ export function useSimulationStream() {
   const start = useCallback(async (profile: string, decision: string) => {
     setState({ ...INITIAL, phase: "extracting" });
 
+    console.log("[altlife] API_URL =", API_URL);
+    console.log("[altlife] starting simulation...");
+
     let response: Response;
     try {
       response = await fetch(`${API_URL}/simulate/stream`, {
@@ -43,7 +46,9 @@ export function useSimulationStream() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profile, decision }),
       });
-    } catch {
+      console.log("[altlife] response status =", response.status);
+    } catch (err) {
+      console.error("[altlife] fetch error =", err);
       setState((s) => ({ ...s, phase: "error", error: "Cannot connect to server. Is the backend running on port 8000?" }));
       return;
     }
