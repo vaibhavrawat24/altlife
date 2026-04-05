@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import InputForm from "@/components/input/InputForm";
@@ -66,6 +67,7 @@ export default function SimulatePage() {
   const handleNodeClick = (id: string) =>
     setSelectedNodeId((prev) => (prev === id ? null : id));
 
+  const isMobile = useIsMobile();
   const iconColor = isDark ? "rgba(205,195,178,0.5)" : "rgba(92,79,68,0.5)";
 
   return (
@@ -75,7 +77,7 @@ export default function SimulatePage() {
       <nav style={{
         position: "sticky", top: 0, zIndex: 40,
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 28px", height: "52px",
+        padding: isMobile ? "0 16px" : "0 28px", height: "52px",
         borderBottom: "1px solid var(--border)",
         background: "var(--surface)",
         transition: "background 0.25s ease",
@@ -127,13 +129,13 @@ export default function SimulatePage() {
                 background: "transparent", color: "var(--text-secondary)",
                 cursor: "pointer", letterSpacing: "0.02em",
               }}>
-              ← new simulation
+              {isMobile ? "← new" : "← new simulation"}
             </button>
           )}
         </div>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-6 py-12">
+      <div style={{ maxWidth: "72rem", margin: "0 auto", padding: isMobile ? "24px 16px" : "48px 24px" }}>
         <AnimatePresence mode="wait">
 
           {/* ── Input ─────────────────────────────────── */}
@@ -286,15 +288,15 @@ export default function SimulatePage() {
                   {/* Verdict card */}
                   <div className="rounded-2xl border-2 p-6"
                     style={{ borderColor: "var(--accent-border)", background: "var(--accent-surface)" }}>
-                    <div className="flex items-start justify-between gap-6">
-                      <div className="flex-1">
+                    <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "flex-start", justifyContent: "space-between", gap: isMobile ? "12px" : "24px" }}>
+                      <div style={{ flex: 1 }}>
                         <p className="text-xs font-semibold uppercase tracking-widest mb-2"
                           style={{ color: "var(--accent)" }}>Verdict</p>
                         <p className="text-base font-medium leading-relaxed" style={{ color: "var(--text)" }}>
                           {state.synthesis.verdict}
                         </p>
                       </div>
-                      <div className="shrink-0 text-right">
+                      <div style={{ flexShrink: 0, textAlign: isMobile ? "left" : "right" }}>
                         <div className="text-3xl font-bold" style={{
                           color: state.synthesis.risk_score < 35 ? "#10b981"
                             : state.synthesis.risk_score < 65 ? "#f59e0b" : "#ef4444"
@@ -388,13 +390,16 @@ export default function SimulatePage() {
               {/* Timeline */}
               {state.timeline.length > 0 && (
                 <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xs font-semibold uppercase tracking-widest"
-                      style={{ color: "var(--text-muted)" }}>
+                  <div style={{ display: "flex", alignItems: "center", marginBottom: "16px" }}>
+                    <h3 style={{
+                      fontSize: "10px", fontWeight: 600, letterSpacing: "0.1em",
+                      textTransform: "uppercase", color: "var(--text-muted)",
+                      fontFamily: "var(--font-space-mono), 'Courier New', monospace",
+                    }}>
                       Timeline — {state.timeline.length} events across 12 months
                     </h3>
                   </div>
-                  <div className="space-y-2">
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                     {(timelineExpanded ? state.timeline : state.timeline.slice(0, 3)).map((ev, i) => {
                       const node  = state.nodes.find((n) => n.id === ev.actor_id);
                       const color = node?.color ?? "#6366f1";
@@ -403,25 +408,57 @@ export default function SimulatePage() {
                         <motion.div key={i}
                           initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: i * 0.025 }}
-                          className="flex gap-3 items-start p-3 rounded-xl border cursor-pointer transition-all hover:border-current"
-                          style={{ background: "var(--surface)", borderColor: "var(--border)" }}
-                          onClick={() => handleNodeClick(ev.actor_id)}>
-                          <span className="text-xs font-bold shrink-0 w-7" style={{ color: "var(--text-muted)" }}>
-                            M{ev.month}
-                          </span>
-                          <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ background: dot }} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm" style={{ color: "var(--text)" }}>{ev.event}</p>
+                          onClick={() => handleNodeClick(ev.actor_id)}
+                          style={{
+                            padding: "12px 14px",
+                            borderRadius: "10px",
+                            border: "1px solid var(--border)",
+                            background: "var(--surface)",
+                            cursor: "pointer",
+                          }}>
+                          {/* Top row: month + dot + actor */}
+                          <div style={{ width: "100%" }}>
+                            <div style={{
+                              display: "flex", alignItems: "center", gap: "8px",
+                              marginBottom: "6px",
+                            }}>
+                              <span style={{
+                                fontSize: "10px", fontWeight: 700,
+                                fontFamily: "var(--font-space-mono), 'Courier New', monospace",
+                                color: "var(--text-muted)", letterSpacing: "0.04em",
+                              }}>
+                                M{ev.month}
+                              </span>
+                              <div style={{
+                                width: "6px", height: "6px", borderRadius: "50%", background: dot, flexShrink: 0,
+                              }} />
+                              <span style={{
+                                fontSize: "10px",
+                                fontFamily: "var(--font-space-mono), 'Courier New', monospace",
+                                padding: "2px 8px", borderRadius: "20px",
+                                background: color + "18", color,
+                              }}>
+                                {ev.actor}
+                              </span>
+                            </div>
+                            {/* Event text */}
+                            <p style={{
+                              margin: 0, fontSize: "13px", lineHeight: 1.6,
+                              color: "var(--text)",
+                              fontFamily: "var(--font-space-mono), 'Courier New', monospace",
+                            }}>
+                              {ev.event}
+                            </p>
                             {ev.financial_delta && (
-                              <span className="text-xs font-mono" style={{ color: "var(--text-secondary)" }}>
+                              <span style={{
+                                display: "inline-block", marginTop: "4px",
+                                fontSize: "11px", color: "var(--text-secondary)",
+                                fontFamily: "var(--font-space-mono), 'Courier New', monospace",
+                              }}>
                                 {ev.financial_delta}
                               </span>
                             )}
                           </div>
-                          <span className="text-xs shrink-0 px-2 py-0.5 rounded-full"
-                            style={{ background: color + "15", color }}>
-                            {ev.actor}
-                          </span>
                         </motion.div>
                       );
                     })}

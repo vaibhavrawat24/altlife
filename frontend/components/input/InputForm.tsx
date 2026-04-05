@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface InputFormProps {
   onSubmit: (profile: string, decision: string) => void;
@@ -73,6 +74,7 @@ const fieldInput: React.CSSProperties = {
 // ── Component ─────────────────────────────────────────────
 
 export default function InputForm({ onSubmit }: InputFormProps) {
+  const isMobile = useIsMobile();
   const [decision,          setDecision]          = useState("");
   const [age,               setAge]               = useState("");
   const [role,              setRole]              = useState("");
@@ -140,7 +142,7 @@ export default function InputForm({ onSubmit }: InputFormProps) {
         </p>
         <div style={{
           display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
+          gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
           gap: "6px",
         }}>
           {NEXT_CHAPTER_OPTIONS.map((opt) => {
@@ -198,7 +200,7 @@ export default function InputForm({ onSubmit }: InputFormProps) {
         <span style={label}>About you</span>
 
         {/* Age + Role */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "8px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "8px", marginBottom: "8px" }}>
           <div>
             <p style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: MONO, marginBottom: "6px" }}>Age</p>
             <input type="number" min={16} max={80}
@@ -261,7 +263,7 @@ export default function InputForm({ onSubmit }: InputFormProps) {
         {/* Risk tolerance */}
         <div style={{ marginBottom: "18px" }}>
           <p style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: MONO, marginBottom: "10px" }}>Risk tolerance</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "6px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: "6px" }}>
             {RISK_OPTIONS.map((opt) => {
               const active = riskTolerance === opt.value;
               return (
