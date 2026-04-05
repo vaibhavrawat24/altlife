@@ -368,4 +368,5 @@ export default function InputForm({ onSubmit }: InputFormProps) {
       </p>
     </motion.div>
   );
+  
 }
