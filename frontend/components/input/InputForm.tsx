@@ -5,6 +5,7 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface InputFormProps {
   onSubmit: (profile: string, decision: string) => void;
+  prefillDecision?: string;
 }
 
 const MONO = "var(--font-space-mono), 'Courier New', monospace";
@@ -73,9 +74,9 @@ const fieldInput: React.CSSProperties = {
 
 // ── Component ─────────────────────────────────────────────
 
-export default function InputForm({ onSubmit }: InputFormProps) {
+export default function InputForm({ onSubmit, prefillDecision = "" }: InputFormProps) {
   const isMobile = useIsMobile();
-  const [decision,          setDecision]          = useState("");
+  const [decision,          setDecision]          = useState(prefillDecision);
   const [age,               setAge]               = useState("");
   const [role,              setRole]              = useState("");
   const [location,          setLocation]          = useState("");

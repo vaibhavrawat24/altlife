@@ -205,7 +205,10 @@ export default function Home() {
 
   const handleSubmit = (e: { preventDefault(): void }) => {
     e.preventDefault();
-    router.push('/simulate');
+    const dest = text.trim()
+      ? `/simulate?decision=${encodeURIComponent(text.trim())}`
+      : '/simulate';
+    router.push(dest);
   };
 
   return (

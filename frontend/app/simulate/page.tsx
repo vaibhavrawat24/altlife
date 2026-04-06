@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import InputForm from "@/components/input/InputForm";
@@ -42,8 +43,10 @@ function MoonIcon({ color }: { color: string }) {
 
 // ── Page ──────────────────────────────────────────────────
 
-export default function SimulatePage() {
+function SimulatePageInner() {
   const { state, start, reset } = useSimulationStream();
+  const searchParams = useSearchParams();
+  const prefillDecision = searchParams.get("decision") ?? "";
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [timelineExpanded, setTimelineExpanded] = useState(false);
   const [isDark, setIsDark] = useState(false);
@@ -151,7 +154,7 @@ export default function SimulatePage() {
                   A network of real-world actors will simulate how your decision unfolds over 12 months.
                 </p>
               </div>
-              <InputForm onSubmit={start} />
+              <InputForm onSubmit={start} prefillDecision={prefillDecision} />
             </motion.div>
           )}
 
@@ -503,5 +506,13 @@ export default function SimulatePage() {
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+export default function SimulatePage() {
+  return (
+    <Suspense>
+      <SimulatePageInner />
+    </Suspense>
   );
 }
