@@ -6,6 +6,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from models.schemas import SimulateRequest
 from simulation.orchestrator import SimulationOrchestrator
+from services.store import save_share, get_share
 
 app = FastAPI(title="Altlife Simulation Engine")
 
@@ -49,6 +50,20 @@ async def simulate_stream(req: SimulateRequest):
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@app.post("/share")
+async def create_share(data: dict):
+    share_id = save_share(data)
+    return {"id": share_id}
+
+
+@app.get("/share/{share_id}")
+async def fetch_share(share_id: str):
+    data = get_share(share_id)
+    if not data:
+        raise HTTPException(status_code=404, detail="Share not found")
+    return data
 
 
 @app.get("/health")

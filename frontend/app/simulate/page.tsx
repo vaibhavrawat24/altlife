@@ -47,10 +47,35 @@ function SimulatePageInner() {
   const { state, start, reset } = useSimulationStream();
   const searchParams = useSearchParams();
   const prefillDecision = searchParams.get("decision") ?? "";
+  const shareId = searchParams.get("id") ?? "";
+
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [timelineExpanded, setTimelineExpanded] = useState(false);
   const [isDark, setIsDark] = useState(false);
-  const isRunning = state.phase !== "idle";
+  const [copyLabel, setCopyLabel] = useState("share results");
+  const [shareDismissed, setShareDismissed] = useState(false);
+  const [sharedState, setSharedState] = useState<any>(null);
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+  // If ?id= param present, fetch shared result from backend
+  useEffect(() => {
+    if (!shareId) return;
+    fetch(`${API_URL}/share/${shareId}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data) setSharedState({
+          ...data,
+          completedActorIds: (data.nodes ?? []).map((n: any) => n.id),
+          edges: data.edges ?? [],
+          phase: "complete",
+          error: null,
+        });
+      });
+  }, [shareId, API_URL]);
+
+  const activeState = sharedState ?? state;
+  const isRunning = !sharedState && state.phase !== "idle";
 
   // sync theme from localStorage on mount
   useEffect(() => {
@@ -58,6 +83,31 @@ function SimulatePageInner() {
       setIsDark(localStorage.getItem("altlife-theme") === "dark");
     } catch { /* no localStorage */ }
   }, []);
+
+  const handleShare = async () => {
+    const payload = {
+      profile: activeState.profile,
+      reality: activeState.reality,
+      synthesis: activeState.synthesis,
+      timeline: activeState.timeline,
+      nodes: activeState.nodes,
+    };
+    try {
+      const res = await fetch(`${API_URL}/share`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const { id } = await res.json();
+      const url = `${window.location.origin}/simulate?id=${id}`;
+      await navigator.clipboard.writeText(url);
+      setCopyLabel("link copied!");
+      setTimeout(() => setCopyLabel("share results"), 2500);
+    } catch {
+      setCopyLabel("failed to share");
+      setTimeout(() => setCopyLabel("share results"), 2500);
+    }
+  };
 
   const toggleTheme = () => {
     const next = !isDark;
@@ -123,6 +173,20 @@ function SimulatePageInner() {
             {isDark ? <SunIcon color={iconColor} /> : <MoonIcon color={iconColor} />}
           </button>
 
+          {(isRunning || sharedState) && activeState.synthesis && (
+            <button onClick={handleShare}
+              style={{
+                fontSize: "11px", fontFamily: "var(--font-space-mono), 'Courier New', monospace",
+                padding: "6px 12px", borderRadius: "6px",
+                border: "1px solid var(--border)",
+                background: copyLabel === "link copied!" ? "var(--success-bg)" : "transparent",
+                color: copyLabel === "link copied!" ? "#10b981" : "var(--text-secondary)",
+                cursor: "pointer", letterSpacing: "0.02em",
+                transition: "all 0.2s",
+              }}>
+              {copyLabel}
+            </button>
+          )}
           {isRunning && (
             <button onClick={() => { reset(); setSelectedNodeId(null); }}
               style={{
@@ -142,7 +206,7 @@ function SimulatePageInner() {
         <AnimatePresence mode="wait">
 
           {/* ── Input ─────────────────────────────────── */}
-          {!isRunning && (
+          {!isRunning && !sharedState && !shareId && (
             <motion.div key="input"
               initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
               className="max-w-2xl mx-auto">
@@ -159,71 +223,71 @@ function SimulatePageInner() {
           )}
 
           {/* ── Simulation ────────────────────────────── */}
-          {isRunning && (
+          {(isRunning || sharedState) && (
             <motion.div key="sim" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
 
               {/* Profile chip */}
-              {state.profile && (
+              {activeState.profile && (
                 <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
                   className="flex items-center gap-3 flex-wrap">
                   <span className="text-sm font-medium" style={{ color: "var(--text)" }}>
-                    {state.profile.decision_summary}
+                    {activeState.profile.decision_summary}
                   </span>
-                  {state.profile.profession && (
+                  {activeState.profile.profession && (
                     <span className="text-xs px-2.5 py-1 rounded-full border"
                       style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text-secondary)" }}>
-                      {state.profile.profession}
+                      {activeState.profile.profession}
                     </span>
                   )}
-                  {state.profile.decision_domain && (
+                  {activeState.profile.decision_domain && (
                     <span className="text-xs px-2.5 py-1 rounded-full border"
                       style={{ background: "var(--accent-light)", borderColor: "var(--accent-border)", color: "var(--accent)" }}>
-                      {state.profile.decision_domain}
+                      {activeState.profile.decision_domain}
                     </span>
                   )}
                 </motion.div>
               )}
 
               {/* Reality check */}
-              {state.reality && state.reality.hard_constraints.length > 0 && (
+              {activeState.reality && activeState.reality.hard_constraints.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
                   className="rounded-xl border p-4"
                   style={{
-                    background: state.reality.severity === "critical" ? "var(--danger-bg)"
-                      : state.reality.severity === "high" ? "var(--warning-bg)"
+                    background: activeState.reality.severity === "critical" ? "var(--danger-bg)"
+                      : activeState.reality.severity === "high" ? "var(--warning-bg)"
                       : "var(--surface)",
-                    borderColor: state.reality.severity === "critical" ? "var(--danger-border)"
-                      : state.reality.severity === "high" ? "var(--warning-border)"
+                    borderColor: activeState.reality.severity === "critical" ? "var(--danger-border)"
+                      : activeState.reality.severity === "high" ? "var(--warning-border)"
                       : "var(--border)",
                   }}>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-sm">
-                      {state.reality.severity === "critical" ? "🚨"
-                        : state.reality.severity === "high" ? "⚠️" : "ℹ️"}
+                      {activeState.reality.severity === "critical" ? "🚨"
+                        : activeState.reality.severity === "high" ? "⚠️" : "ℹ️"}
                     </span>
                     <span className="text-xs font-semibold uppercase tracking-widest"
                       style={{
-                        color: state.reality.severity === "critical" ? "#ef4444"
-                          : state.reality.severity === "high" ? "#d97706"
+                        color: activeState.reality.severity === "critical" ? "#ef4444"
+                          : activeState.reality.severity === "high" ? "#d97706"
                           : "var(--text-secondary)",
                       }}>
-                      Real-world check · {state.reality.severity} severity
+                      Real-world check · {activeState.reality.severity} severity
                     </span>
                     <span className="text-xs ml-auto" style={{ color: "var(--text-muted)" }}>
-                      {state.reality.facts_found} sources
+                      {activeState.reality.facts_found} sources
                     </span>
                   </div>
                   <ul className="space-y-1">
-                    {state.reality.hard_constraints.map((c, i) => (
+                    {activeState.reality.hard_constraints.map((c: any, i: number) => (
                       <li key={i} className="text-sm flex gap-2" style={{ color: "var(--text)" }}>
                         <span style={{ color: "var(--text-muted)" }}>•</span>{c}
                       </li>
                     ))}
                   </ul>
-                  {state.reality.severity_reason && (
+                  {activeState.reality.severity_reason && (
                     <p className="text-xs mt-2 italic" style={{ color: "var(--text-muted)" }}>
-                      {state.reality.severity_reason}
+                      {activeState.reality.severity_reason}
                     </p>
                   )}
                 </motion.div>
@@ -231,17 +295,17 @@ function SimulatePageInner() {
 
               {/* Graph */}
               <div className="relative">
-                <SimulationGraph state={state} onNodeClick={handleNodeClick} />
-                <NodePanel nodeId={selectedNodeId} state={state} onClose={() => setSelectedNodeId(null)} />
+                <SimulationGraph state={activeState} onNodeClick={handleNodeClick} />
+                <NodePanel nodeId={selectedNodeId} state={activeState} onClose={() => setSelectedNodeId(null)} />
               </div>
 
               {/* Agent legend */}
-              {state.nodes.filter((n) => n.is_primary).length > 0 && (
+              {activeState.nodes.filter((n: any) => n.is_primary).length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {state.nodes.filter((n) => n.is_primary).map((n) => {
-                    const done    = state.completedActorIds.includes(n.id);
-                    const subs    = state.nodes.filter((s) => s.parent_id === n.id);
-                    const doneSubs = subs.filter((s) => state.completedActorIds.includes(s.id)).length;
+                  {activeState.nodes.filter((n: any) => n.is_primary).map((n: any) => {
+                    const done    = activeState.completedActorIds.includes(n.id);
+                    const subs    = activeState.nodes.filter((s: any) => s.parent_id === n.id);
+                    const doneSubs = subs.filter((s: any) => activeState.completedActorIds.includes(s.id)).length;
                     return (
                       <button key={n.id}
                         onClick={() => handleNodeClick(n.id)}
@@ -276,7 +340,7 @@ function SimulatePageInner() {
               )}
 
               {/* Synthesis */}
-              {state.synthesis && (
+              {activeState.synthesis && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5 }}
@@ -296,15 +360,15 @@ function SimulatePageInner() {
                         <p className="text-xs font-semibold uppercase tracking-widest mb-2"
                           style={{ color: "var(--accent)" }}>Verdict</p>
                         <p className="text-base font-medium leading-relaxed" style={{ color: "var(--text)" }}>
-                          {state.synthesis.verdict}
+                          {activeState.synthesis.verdict}
                         </p>
                       </div>
                       <div style={{ flexShrink: 0, textAlign: isMobile ? "left" : "right" }}>
                         <div className="text-3xl font-bold" style={{
-                          color: state.synthesis.risk_score < 35 ? "#10b981"
-                            : state.synthesis.risk_score < 65 ? "#f59e0b" : "#ef4444"
+                          color: activeState.synthesis.risk_score < 35 ? "#10b981"
+                            : activeState.synthesis.risk_score < 65 ? "#f59e0b" : "#ef4444"
                         }}>
-                          {state.synthesis.risk_score}
+                          {activeState.synthesis.risk_score}
                         </div>
                         <div className="text-xs" style={{ color: "var(--text-muted)" }}>risk score</div>
                       </div>
@@ -313,11 +377,11 @@ function SimulatePageInner() {
                     <div className="mt-4 rounded-full h-1.5 overflow-hidden" style={{ background: "var(--border)" }}>
                       <motion.div className="h-full rounded-full"
                         style={{
-                          background: state.synthesis.risk_score < 35 ? "#10b981"
-                            : state.synthesis.risk_score < 65 ? "#f59e0b" : "#ef4444"
+                          background: activeState.synthesis.risk_score < 35 ? "#10b981"
+                            : activeState.synthesis.risk_score < 65 ? "#f59e0b" : "#ef4444"
                         }}
                         initial={{ width: 0 }}
-                        animate={{ width: `${state.synthesis.risk_score}%` }}
+                        animate={{ width: `${activeState.synthesis.risk_score}%` }}
                         transition={{ duration: 1.2, ease: "easeOut" }} />
                     </div>
                   </div>
@@ -328,7 +392,7 @@ function SimulatePageInner() {
                       style={{ background: "var(--danger-bg)", borderColor: "var(--danger-border)" }}>
                       <p className="text-xs font-semibold uppercase tracking-widest mb-3"
                         style={{ color: "#ef4444" }}>Key Risks</p>
-                      {(state.synthesis.key_risks ?? []).map((r, i) => (
+                      {(activeState.synthesis.key_risks ?? []).map((r: any, i: number) => (
                         <p key={i} className="text-sm mb-1.5 flex gap-2" style={{ color: "var(--text-secondary)" }}>
                           <span style={{ color: "#ef4444" }}>•</span>{r}
                         </p>
@@ -339,7 +403,7 @@ function SimulatePageInner() {
                       style={{ background: "var(--success-bg)", borderColor: "var(--success-border)" }}>
                       <p className="text-xs font-semibold uppercase tracking-widest mb-3"
                         style={{ color: "#10b981" }}>Key Opportunities</p>
-                      {(state.synthesis.key_opportunities ?? []).map((o, i) => (
+                      {(activeState.synthesis.key_opportunities ?? []).map((o: any, i: number) => (
                         <p key={i} className="text-sm mb-1.5 flex gap-2" style={{ color: "var(--text-secondary)" }}>
                           <span style={{ color: "#10b981" }}>•</span>{o}
                         </p>
@@ -348,14 +412,14 @@ function SimulatePageInner() {
                   </div>
 
                   {/* Turning points */}
-                  {state.synthesis.turning_points?.length > 0 && (
+                  {activeState.synthesis.turning_points?.length > 0 && (
                     <div className="rounded-xl border p-5"
                       style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
                       <p className="text-xs font-semibold uppercase tracking-widest mb-4"
                         style={{ color: "var(--text-muted)" }}>
                         Critical Turning Points
                       </p>
-                      {state.synthesis.turning_points.map((tp, i) => (
+                      {activeState.synthesis.turning_points.map((tp: any, i: number) => (
                         <div key={i} className="flex gap-3 mb-3 last:mb-0">
                           <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold"
                             style={{ background: "var(--accent-light)", color: "var(--accent)" }}>
@@ -378,20 +442,21 @@ function SimulatePageInner() {
                       Your next step — this week
                     </p>
                     <p className="text-base font-semibold" style={{ color: "var(--text)" }}>
-                      {state.synthesis.first_step}
+                      {activeState.synthesis.first_step}
                     </p>
                   </div>
 
-                  {state.synthesis.agent_consensus && (
+                  {activeState.synthesis.agent_consensus && (
                     <p className="text-xs text-center italic px-4" style={{ color: "var(--text-muted)" }}>
-                      {state.synthesis.agent_consensus}
+                      {activeState.synthesis.agent_consensus}
                     </p>
                   )}
                 </motion.div>
               )}
 
+
               {/* Timeline */}
-              {state.timeline.length > 0 && (
+              {activeState.timeline.length > 0 && (
                 <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", marginBottom: "16px" }}>
                     <h3 style={{
@@ -399,12 +464,12 @@ function SimulatePageInner() {
                       textTransform: "uppercase", color: "var(--text-muted)",
                       fontFamily: "var(--font-space-mono), 'Courier New', monospace",
                     }}>
-                      Timeline — {state.timeline.length} events across 12 months
+                      Timeline — {activeState.timeline.length} events across 12 months
                     </h3>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    {(timelineExpanded ? state.timeline : state.timeline.slice(0, 3)).map((ev, i) => {
-                      const node  = state.nodes.find((n) => n.id === ev.actor_id);
+                    {(timelineExpanded ? activeState.timeline : activeState.timeline.slice(0, 3)).map((ev: any, i: number) => {
+                      const node  = activeState.nodes.find((n: any) => n.id === ev.actor_id);
                       const color = node?.color ?? "#6366f1";
                       const dot   = IMPACT_DOT[ev.impact] ?? "#94a3b8";
                       return (
@@ -467,7 +532,7 @@ function SimulatePageInner() {
                     })}
                   </div>
 
-                  {state.timeline.length > 3 && (
+                  {activeState.timeline.length > 3 && (
                     <button
                       onClick={() => setTimelineExpanded(p => !p)}
                       style={{
@@ -495,7 +560,7 @@ function SimulatePageInner() {
                     >
                       {timelineExpanded
                         ? "↑ show less"
-                        : `↓ show ${state.timeline.length - 3} more events`}
+                        : `↓ show ${activeState.timeline.length - 3} more events`}
                     </button>
                   )}
                 </motion.div>
@@ -505,6 +570,54 @@ function SimulatePageInner() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Fixed share bar */}
+      {activeState.synthesis && !sharedState && !shareDismissed && (
+        <motion.div
+          initial={{ y: 80, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.6, type: "spring", stiffness: 260, damping: 24 }}
+          style={{
+            position: "fixed", bottom: "24px",
+            right: "24px",
+            zIndex: 50,
+            display: "flex", alignItems: "center", gap: "10px",
+            padding: "8px 12px",
+            borderRadius: "40px",
+            background: "var(--surface)",
+            border: "1px solid var(--border-strong)",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+            fontFamily: "var(--font-space-mono), 'Courier New', monospace",
+            whiteSpace: "nowrap",
+          }}>
+          {/* Close button on left border */}
+          <button onClick={() => setShareDismissed(true)} style={{
+            position: "absolute", left: "-8px", top: "50%", transform: "translateY(-50%)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            width: "16px", height: "16px",
+            background: "var(--surface)", border: "1px solid var(--border-strong)",
+            borderRadius: "50%", cursor: "pointer",
+            color: "var(--text-muted)", fontSize: "11px",
+            lineHeight: 1, padding: 0,
+          }}>×</button>
+          <span style={{ fontSize: "10px", color: "var(--text-secondary)" }}>
+            know someone facing this?
+          </span>
+          <button onClick={handleShare} style={{
+            padding: "5px 12px",
+            fontSize: "10px", fontWeight: 700,
+            letterSpacing: "0.04em",
+            fontFamily: "var(--font-space-mono), 'Courier New', monospace",
+            borderRadius: "20px", border: "none",
+            cursor: "pointer",
+            background: copyLabel === "link copied!" ? "#10b981" : "var(--accent)",
+            color: "#fff",
+            transition: "background 0.2s",
+          }}>
+            {copyLabel === "link copied!" ? "✓ copied!" : "share →"}
+          </button>
+        </motion.div>
+      )}
     </div>
   );
 }
