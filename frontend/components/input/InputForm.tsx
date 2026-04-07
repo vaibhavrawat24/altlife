@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { useRateLimit } from "@/hooks/useRateLimit";
 
 interface InputFormProps {
   onSubmit: (profile: string, decision: string) => void;
@@ -76,6 +77,7 @@ const fieldInput: React.CSSProperties = {
 
 export default function InputForm({ onSubmit, prefillDecision = "" }: InputFormProps) {
   const isMobile = useIsMobile();
+  const { isBlocked, formattedTime, recordSimulation } = useRateLimit();
   const [decision,          setDecision]          = useState(prefillDecision);
   const [age,               setAge]               = useState("");
   const [role,              setRole]              = useState("");
@@ -87,6 +89,7 @@ export default function InputForm({ onSubmit, prefillDecision = "" }: InputFormP
   const [nextChapter,       setNextChapter]       = useState("");
   const [nextChapterDetail, setNextChapterDetail] = useState("");
   const [attempted,         setAttempted]         = useState(false);
+  const [showRateLimitModal, setShowRateLimitModal] = useState(false);
 
   const toggleSupport = (tag: string) =>
     setSupportTags((prev) =>
@@ -98,6 +101,9 @@ export default function InputForm({ onSubmit, prefillDecision = "" }: InputFormP
   const canSubmit  = decisionOk && roleOk;
 
   const handleSubmit = () => {
+    if (isBlocked) {
+      return; // Don't allow submission
+    }
     if (!canSubmit) {
       setAttempted(true);
       return;
@@ -115,6 +121,7 @@ export default function InputForm({ onSubmit, prefillDecision = "" }: InputFormP
       parts.push(`Plan after this decision: ${lbl}`);
     }
     if (nextChapterDetail.trim()) parts.push(`Details about next chapter: ${nextChapterDetail}`);
+    recordSimulation(); // Record the simulation for rate limiting
     onSubmit(parts.join(". "), decision.trim());
   };
 
@@ -361,9 +368,45 @@ export default function InputForm({ onSubmit, prefillDecision = "" }: InputFormP
         </div>
       )}
 
+      {/* ── Rate limit cooldown alert ────────────────── */}
+      {isBlocked && (
+        <div style={{
+          marginBottom: "10px",
+          padding: "12px 14px",
+          borderRadius: "6px",
+          border: "1px solid #fbbf24",
+          background: "rgba(251, 191, 36, 0.1)",
+          fontSize: "11px",
+          fontFamily: MONO,
+          color: "#b45309",
+          letterSpacing: "0.02em",
+          textAlign: "center",
+        }}>
+          ⏱️ Wait {formattedTime} to generate the next simulation{" "}
+          <button
+            onClick={() => setShowRateLimitModal(true)}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#b45309",
+              cursor: "pointer",
+              textDecoration: "underline",
+              fontFamily: MONO,
+              fontSize: "11px",
+              padding: 0,
+              marginLeft: "4px",
+            }}
+          >
+            (click to know why)
+          </button>
+        </div>
+        
+      )}
+
       {/* ── Submit ────────────────────────────────────── */}
       <button
         onClick={handleSubmit}
+        disabled={isBlocked}
         style={{
           width: "100%",
           padding: "14px",
@@ -373,14 +416,15 @@ export default function InputForm({ onSubmit, prefillDecision = "" }: InputFormP
           letterSpacing: "0.05em",
           borderRadius: "6px",
           border: "none",
-          cursor: "pointer",
-          background: "var(--accent)",
-          color: "#fff",
+          cursor: isBlocked ? "not-allowed" : "pointer",
+          background: isBlocked ? "#d1d5db" : "var(--accent)",
+          color: isBlocked ? "#6b7280" : "#fff",
           transition: "opacity 0.15s",
           marginBottom: "2px",
+          opacity: isBlocked ? 0.6 : 1,
         }}
       >
-        Run Simulation ⚡
+        {isBlocked ? `Wait ${formattedTime}` : "Run Simulation ⚡"}
       </button>
 
       <p style={{
@@ -393,6 +437,163 @@ export default function InputForm({ onSubmit, prefillDecision = "" }: InputFormP
       }}>
         Takes ~30–45 seconds · Checks live world conditions · Not financial or legal advice
       </p>
+
+      {/* ── Rate Limit Explanation Modal ─────────────── */}
+      {showRateLimitModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0, 0, 0, 0.6)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 9999,
+          padding: "16px",
+        }} onClick={() => setShowRateLimitModal(false)}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "12px",
+              padding: "32px",
+              maxWidth: "500px",
+              width: "100%",
+              boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+              fontFamily: MONO,
+            }}
+          >
+            {/* Header with icon */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              marginBottom: "20px",
+            }}>
+              <div style={{
+                fontSize: "32px",
+                filter: "opacity(0.8)",
+              }}>
+                🔒
+              </div>
+              <h2 style={{
+                margin: 0,
+                fontSize: "18px",
+                fontWeight: 700,
+                color: "var(--text)",
+                letterSpacing: "0.05em",
+              }}>
+                Why the timeout?
+              </h2>
+            </div>
+
+            {/* Content */}
+            <div style={{
+              lineHeight: 1.8,
+              marginBottom: "24px",
+              color: "var(--text-secondary)",
+              fontSize: "13px",
+            }}>
+              <p style={{ marginBottom: "16px" }}>
+                <strong style={{ color: "var(--text)" }}>Altlife is open source</strong> and free for everyone. 
+                To keep the service running smoothly and prevent abuse, we limit each user to one simulation every <strong>15 minutes</strong>.
+              </p>
+              <p style={{ marginBottom: "16px" }}>
+                This gives our servers time to rest between requests and ensures fair access for all users worldwide.
+              </p>
+              <p style={{ marginTop: "20px", fontSize: "12px", opacity: 0.7 }}>
+                💡 <strong>Pro tip:</strong> Use this time to reflect on your decision or discuss it with someone you trust.
+              </p>
+            </div>
+
+            {/* Visual meter */}
+            <div style={{
+              background: "var(--bg)",
+              border: "1px solid var(--border)",
+              borderRadius: "8px",
+              padding: "16px",
+              marginBottom: "24px",
+              textAlign: "center",
+            }}>
+              <div style={{
+                fontSize: "28px",
+                fontWeight: 700,
+                color: "#fbbf24",
+                marginBottom: "8px",
+                letterSpacing: "0.1em",
+              }}>
+                15 MIN
+              </div>
+              <div style={{
+                fontSize: "11px",
+                color: "var(--text-muted)",
+                letterSpacing: "0.05em",
+              }}>
+                Timeout between simulations
+              </div>
+            </div>
+
+            {/* Features list */}
+            <div style={{
+              background: "var(--bg)",
+              border: "1px solid var(--border)",
+              borderRadius: "8px",
+              padding: "16px",
+              marginBottom: "24px",
+            }}>
+              <div style={{
+                fontSize: "11px",
+                fontWeight: 700,
+                color: "var(--text-muted)",
+                marginBottom: "10px",
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+              }}>
+                Open Source Benefits
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {["🌍 Available to everyone globally", "🚀 Free tier (no login needed)", "⚡ AI-powered simulations", "🔄 Community maintained"].map((item, i) => (
+                  <div key={i} style={{
+                    fontSize: "12px",
+                    color: "var(--text-secondary)",
+                  }}>
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Close button */}
+            <button
+              onClick={() => setShowRateLimitModal(false)}
+              style={{
+                width: "100%",
+                padding: "12px",
+                background: "var(--accent)",
+                color: "#fff",
+                border: "none",
+                borderRadius: "6px",
+                fontFamily: MONO,
+                fontSize: "13px",
+                fontWeight: 700,
+                cursor: "pointer",
+                letterSpacing: "0.05em",
+                transition: "opacity 0.15s",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+            >
+              Got it! ✓
+            </button>
+          </motion.div>
+        </div>
+      )}
     </motion.div>
   );
   

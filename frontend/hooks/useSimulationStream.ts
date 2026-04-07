@@ -53,6 +53,19 @@ export function useSimulationStream() {
       return;
     }
 
+    // Handle rate limiting (429)
+    if (response.status === 429) {
+      const waitSeconds = response.headers.get("X-Wait-Seconds") || "900";
+      const errorText = await response.text();
+      let errorDetail = "Please wait before running another simulation";
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorDetail = errorJson.detail || errorDetail;
+      } catch { /* use default */ }
+      setState((s) => ({ ...s, phase: "error", error: errorDetail }));
+      return;
+    }
+
     if (!response.ok || !response.body) {
       const isProd = !!process.env.NEXT_PUBLIC_API_URL;
       setState((s) => ({ ...s, phase: "error", error: isProd
