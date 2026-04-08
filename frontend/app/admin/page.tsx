@@ -20,6 +20,7 @@ type UserSimulation = {
   created_at: string;
 };
 
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 function formatDate(value: string | null) {
