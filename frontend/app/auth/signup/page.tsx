@@ -110,7 +110,7 @@ export default function SignupPage() {
     setSubmitError(null);
     try {
       await signupWithGoogle();
-      router.push("/simulate");
+      // Supabase redirects to Google directly; callback route handles /simulate redirect.
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Google signup failed");
     }

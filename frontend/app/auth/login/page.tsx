@@ -85,8 +85,7 @@ export default function LoginPage() {
     setSubmitError(null);
     try {
       await loginWithGoogle();
-      // Redirect happens after callback
-      router.push("/simulate");
+      // Supabase redirects to Google directly; callback route handles /simulate redirect.
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Google login failed");
     }
