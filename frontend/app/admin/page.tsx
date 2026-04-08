@@ -34,8 +34,8 @@ export default function AdminPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [simulations, setSimulations] = useState<UserSimulation[]>([]);
-  const [usersLoading, setUsersLoading] = useState(false);
-  const [simsLoading, setSimsLoading] = useState(false);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [simsLoading, setSimsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
@@ -237,7 +237,21 @@ export default function AdminPage() {
             />
 
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "calc(70vh - 120px)", overflow: "auto" }}>
-              {filteredUsers.map((item) => {
+              {usersLoading ? (
+                Array.from({ length: 5 }).map((_, index) => (
+                  <div key={index} style={{
+                    border: "1px solid var(--border)",
+                    borderRadius: "10px",
+                    padding: "12px",
+                    background: "var(--bg)",
+                    opacity: 0.75,
+                  }}>
+                    <div style={{ height: "14px", width: "68%", background: "var(--border)" }} />
+                    <div style={{ height: "10px", width: "88%", background: "var(--border)", marginTop: "8px" }} />
+                    <div style={{ height: "10px", width: "45%", background: "var(--border)", marginTop: "8px" }} />
+                  </div>
+                ))
+              ) : filteredUsers.map((item) => {
                 const active = item.user_id === selectedUserId;
                 return (
                   <button
@@ -299,7 +313,24 @@ export default function AdminPage() {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              {simulations.map((item) => (
+              {simsLoading ? (
+                Array.from({ length: 4 }).map((_, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      border: "1px solid var(--border)",
+                      borderRadius: "10px",
+                      background: "var(--bg)",
+                      padding: "12px",
+                      opacity: 0.75,
+                    }}
+                  >
+                    <div style={{ height: "10px", width: "30%", background: "var(--border)", marginBottom: "8px" }} />
+                    <div style={{ height: "14px", width: "70%", background: "var(--border)", marginBottom: "8px" }} />
+                    <div style={{ height: "12px", width: "85%", background: "var(--border)", marginBottom: "10px" }} />
+                  </div>
+                ))
+              ) : simulations.map((item) => (
                 <div
                   key={`${item.share_id}-${item.created_at}`}
                   style={{

@@ -46,7 +46,7 @@ function MoonIcon({ color }: { color: string }) {
 
 function SimulatePageInner() {
   const { state, start, reset } = useSimulationStream();
-  const { user, logout } = useAuth();
+  const { user, logout, loading: authLoading } = useAuth();
   const searchParams = useSearchParams();
   const prefillDecision = searchParams.get("decision") ?? "";
   const shareId = searchParams.get("id") ?? "";
@@ -57,13 +57,22 @@ function SimulatePageInner() {
   const [copyLabel, setCopyLabel] = useState("share results");
   const [shareDismissed, setShareDismissed] = useState(false);
   const [sharedState, setSharedState] = useState<any>(null);
+  const [shareLoading, setShareLoading] = useState(!!shareId);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
   // If ?id= param present, fetch shared result from backend
   useEffect(() => {
-    if (!shareId) return;
+    if (!shareId) {
+      setShareLoading(false);
+      setSharedState(null);
+      return;
+    }
+
+    setShareLoading(true);
+    setSharedState(null);
+
     fetch(`${API_URL}/share/${shareId}`)
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
@@ -74,6 +83,9 @@ function SimulatePageInner() {
           phase: "complete",
           error: null,
         });
+      })
+      .finally(() => {
+        setShareLoading(false);
       });
   }, [shareId, API_URL]);
 
@@ -317,6 +329,15 @@ function SimulatePageInner() {
               )}
               </div>
             </div>
+          ) : authLoading ? (
+            <div style={{
+              width: "128px",
+              height: "32px",
+              borderRadius: "6px",
+              border: "1px solid var(--border)",
+              background: "var(--surface)",
+              opacity: 0.55,
+            }} />
           ) : (
             // Login/Signup Buttons
             <div style={{ display: "flex", gap: "8px" }}>
@@ -351,7 +372,7 @@ function SimulatePageInner() {
         <AnimatePresence mode="wait">
 
           {/* ── Input ─────────────────────────────────── */}
-          {!isRunning && !sharedState && !shareId && (
+          {!isRunning && !sharedState && !shareLoading && !shareId && (
             <motion.div key="input"
               initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
               className="max-w-2xl mx-auto">
@@ -674,6 +695,28 @@ function SimulatePageInner() {
                           </div>
                         </motion.div>
                       );
+
+                      {shareLoading && !sharedState && (
+                        <motion.div
+                          key="share-loading"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          style={{
+                            minHeight: isMobile ? "240px" : "320px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            border: "1px solid var(--border)",
+                            borderRadius: "12px",
+                            background: "var(--surface)",
+                            color: "var(--text-secondary)",
+                            fontSize: "13px",
+                          }}
+                        >
+                          Loading simulation…
+                        </motion.div>
+                      )}
                     })}
                   </div>
 
