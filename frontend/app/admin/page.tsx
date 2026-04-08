@@ -11,6 +11,7 @@ type AdminUser = {
   last_login_at: string | null;
   created_at: string | null;
   updated_at: string | null;
+  simulation_count?: number;
 };
 
 type UserSimulation = {
@@ -272,6 +273,11 @@ export default function AdminPage() {
                     <div style={{ fontSize: "11px", color: "var(--text-secondary)", fontFamily: "var(--font-space-mono), 'Courier New', monospace", wordBreak: "break-all" }}>
                       {item.user_id}
                     </div>
+                    {typeof item.simulation_count === "number" && (
+                      <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "6px" }}>
+                        {item.simulation_count} simulation{item.simulation_count === 1 ? "" : "s"}
+                      </div>
+                    )}
                     <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "6px" }}>
                       Last login: {formatDate(item.last_login_at)}
                     </div>
@@ -300,6 +306,9 @@ export default function AdminPage() {
               {selectedUser && (
                 <div style={{ textAlign: "right", fontSize: "12px", color: "var(--text-secondary)" }}>
                   <div>Provider: {selectedUser.auth_provider || "—"}</div>
+                  {typeof selectedUser.simulation_count === "number" && (
+                    <div>Simulations: {selectedUser.simulation_count}</div>
+                  )}
                   <div>Created: {formatDate(selectedUser.created_at)}</div>
                   <div>Updated: {formatDate(selectedUser.updated_at)}</div>
                 </div>

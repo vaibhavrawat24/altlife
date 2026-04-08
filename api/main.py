@@ -22,6 +22,7 @@ from services.supabase import (
     upsert_profile,
     get_user_history,
     get_all_users,
+    get_anonymous_history,
 )
 import json
 import time
@@ -351,6 +352,8 @@ async def admin_user_simulations(user_id: str, request: Request, limit: int = 50
     """Get simulations for a selected user."""
     require_admin(request)
     safe_limit = max(1, min(limit, 100))
+    if user_id == "__anonymous__":
+        return {"items": get_anonymous_history(safe_limit)}
     return {"items": get_user_history(user_id, safe_limit)}
 
 

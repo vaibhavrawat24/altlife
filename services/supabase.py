@@ -247,6 +247,30 @@ def get_user_history(user_id: str, limit: int = 20) -> list[Dict[str, Any]]:
         return []
 
 
+def get_anonymous_history(limit: int = 50) -> list[Dict[str, Any]]:
+    """Return recent simulations created by logged-out users."""
+    try:
+        safe_limit = max(1, min(limit, 100))
+        with httpx.Client() as client:
+            url = (
+                f"{SUPABASE_URL}/rest/v1/simulations"
+                "?user_id=is.null"
+                "&select=share_id,decision,profile,created_at,ip_address"
+                "&order=created_at.desc"
+                f"&limit={safe_limit}"
+            )
+            response = client.get(url, headers=HEADERS)
+            if response.status_code >= 400:
+                print(f"[Supabase] Error getting anonymous history {response.status_code}: {response.text}")
+                return []
+
+            data = response.json() if response.text else []
+            return data or []
+    except Exception as e:
+        print(f"[Supabase] Error getting anonymous history: {e}")
+        return []
+
+
 def get_all_users(limit: int = 100) -> list[Dict[str, Any]]:
     """Return profiles for all known users."""
     try:
@@ -264,6 +288,22 @@ def get_all_users(limit: int = 100) -> list[Dict[str, Any]]:
                 return []
 
             data = response.json() if response.text else []
+            anonymous_history = get_anonymous_history(1)
+            anonymous_latest = anonymous_history[0] if anonymous_history else None
+
+            if anonymous_history:
+                data.append(
+                    {
+                        "user_id": "__anonymous__",
+                        "email": "Logged out users",
+                        "auth_provider": "anonymous",
+                        "last_login_at": anonymous_latest.get("created_at"),
+                        "created_at": None,
+                        "updated_at": anonymous_latest.get("created_at"),
+                        "simulation_count": len(get_anonymous_history(100)),
+                    }
+                )
+
             return data or []
     except Exception as e:
         print(f"[Supabase] Error getting users: {e}")
