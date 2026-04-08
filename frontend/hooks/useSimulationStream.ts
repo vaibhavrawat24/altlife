@@ -33,17 +33,28 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 export function useSimulationStream() {
   const [state, setState] = useState<SimulationState>(INITIAL);
 
-  const start = useCallback(async (profile: string, decision: string) => {
+  const start = useCallback(async (profile: string, decision: string, userId?: string) => {
     setState({ ...INITIAL, phase: "extracting" });
 
     console.log("[altlife] API_URL =", API_URL);
     console.log("[altlife] starting simulation...");
 
+    // Build URL with optional user_id
+    let url = `${API_URL}/simulate/stream`;
+    if (userId) {
+      url += `?user_id=${encodeURIComponent(userId)}`;
+    }
+
+    const token = typeof window !== "undefined" ? localStorage.getItem("altlife_token") : null;
+
     let response: Response;
     try {
-      response = await fetch(`${API_URL}/simulate/stream`, {
+      response = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ profile, decision }),
       });
       console.log("[altlife] response status =", response.status);

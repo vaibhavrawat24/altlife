@@ -1,8 +1,10 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useRateLimit } from "@/hooks/useRateLimit";
+import { useAuth } from "@/hooks/useAuth";
 
 interface InputFormProps {
   onSubmit: (profile: string, decision: string) => void;
@@ -76,8 +78,10 @@ const fieldInput: React.CSSProperties = {
 // ── Component ─────────────────────────────────────────────
 
 export default function InputForm({ onSubmit, prefillDecision = "" }: InputFormProps) {
+  const router = useRouter();
   const isMobile = useIsMobile();
-  const { isBlocked, formattedTime, recordSimulation } = useRateLimit();
+  const { user, isAuthenticated } = useAuth();
+  const { isBlocked, formattedTime, canLoginToReset, recordSimulation } = useRateLimit(user?.user_id);
   const [decision,          setDecision]          = useState(prefillDecision);
   const [age,               setAge]               = useState("");
   const [role,              setRole]              = useState("");
@@ -90,6 +94,7 @@ export default function InputForm({ onSubmit, prefillDecision = "" }: InputFormP
   const [nextChapterDetail, setNextChapterDetail] = useState("");
   const [attempted,         setAttempted]         = useState(false);
   const [showRateLimitModal, setShowRateLimitModal] = useState(false);
+  const [showLoginModal,    setShowLoginModal]    = useState(false);
 
   const toggleSupport = (tag: string) =>
     setSupportTags((prev) =>
@@ -380,27 +385,50 @@ export default function InputForm({ onSubmit, prefillDecision = "" }: InputFormP
           fontFamily: MONO,
           color: "#b45309",
           letterSpacing: "0.02em",
-          textAlign: "center",
         }}>
-          ⏱️ Wait {formattedTime} to generate the next simulation{" "}
-          <button
-            onClick={() => setShowRateLimitModal(true)}
-            style={{
-              background: "none",
-              border: "none",
-              color: "#b45309",
-              cursor: "pointer",
-              textDecoration: "underline",
-              fontFamily: MONO,
-              fontSize: "11px",
-              padding: 0,
-              marginLeft: "4px",
-            }}
-          >
-            (click to know why)
-          </button>
+          <div style={{ display: "flex", gap: "12px", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              ⏱️ Wait {formattedTime} to generate the next simulation{" "}
+              <button
+                onClick={() => setShowRateLimitModal(true)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#b45309",
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                  fontFamily: MONO,
+                  fontSize: "11px",
+                  padding: 0,
+                  marginLeft: "4px",
+                }}
+              >
+                (click to know why)
+              </button>
+            </div>
+            {canLoginToReset && !isAuthenticated && (
+              <button
+                onClick={() => setShowLoginModal(true)}
+                style={{
+                  background: "#b45309",
+                  border: "none",
+                  color: "#fff",
+                  cursor: "pointer",
+                  fontFamily: MONO,
+                  fontSize: "11px",
+                  padding: "4px 8px",
+                  borderRadius: "4px",
+                  whiteSpace: "nowrap",
+                  transition: "opacity 0.15s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.8")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              >
+                or login →
+              </button>
+            )}
+          </div>
         </div>
-        
       )}
 
       {/* ── Submit ────────────────────────────────────── */}
@@ -507,6 +535,11 @@ export default function InputForm({ onSubmit, prefillDecision = "" }: InputFormP
               <p style={{ marginBottom: "16px" }}>
                 This gives our servers time to rest between requests and ensures fair access for all users worldwide.
               </p>
+              {!isAuthenticated && (
+                <p style={{ marginBottom: "16px", padding: "12px", background: "rgba(34, 197, 94, 0.1)", border: "1px solid rgba(34, 197, 94, 0.3)", borderRadius: "6px", color: "#16a34a" }}>
+                  ⚡ <strong>Unlock more simulations:</strong> <a href="/auth/signup" style={{ color: "inherit", textDecoration: "underline", fontWeight: 600, cursor: "pointer" }}>Sign up</a> to simulate instantly without waiting for 15 minutes!
+                </p>
+              )}
               <p style={{ marginTop: "20px", fontSize: "12px", opacity: 0.7 }}>
                 💡 <strong>Pro tip:</strong> Use this time to reflect on your decision or discuss it with someone you trust.
               </p>
@@ -558,7 +591,7 @@ export default function InputForm({ onSubmit, prefillDecision = "" }: InputFormP
                 Open Source Benefits
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {["🌍 Available to everyone globally", "🚀 Free tier (no login needed)", "⚡ AI-powered simulations", "🔄 Community maintained"].map((item, i) => (
+                {["🌍 Available to everyone globally", "⚡ AI-powered simulations", "🔄 Solo maintained"].map((item, i) => (
                   <div key={i} style={{
                     fontSize: "12px",
                     color: "var(--text-secondary)",
@@ -591,6 +624,163 @@ export default function InputForm({ onSubmit, prefillDecision = "" }: InputFormP
             >
               Got it! ✓
             </button>
+          </motion.div>
+        </div>
+      )}
+
+      {/* ── Login Modal (to get free simulation) ────── */}
+      {showLoginModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0, 0, 0, 0.6)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 9999,
+          padding: "16px",
+        }} onClick={() => setShowLoginModal(false)}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "12px",
+              padding: "32px",
+              maxWidth: "400px",
+              width: "100%",
+              boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+              fontFamily: MONO,
+            }}
+          >
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              marginBottom: "20px",
+            }}>
+              <div style={{ fontSize: "28px" }}>🔓</div>
+              <h2 style={{
+                margin: 0,
+                fontSize: "18px",
+                fontWeight: 700,
+                color: "var(--text)",
+                letterSpacing: "0.05em",
+              }}>
+                Unlock More Simulations
+              </h2>
+            </div>
+
+            <div style={{
+              lineHeight: 1.8,
+              marginBottom: "24px",
+              color: "var(--text-secondary)",
+              fontSize: "13px",
+            }}>
+              <p style={{ marginBottom: "12px" }}>
+                Login to simulate instantly without waiting for 15 minutes.
+              </p>
+            </div>
+
+            <div style={{
+              background: "var(--bg)",
+              border: "1px solid var(--border)",
+              borderRadius: "8px",
+              padding: "16px",
+              marginBottom: "24px",
+              fontSize: "12px",
+              color: "var(--text-muted)",
+              textAlign: "center",
+            }}>
+              💡 Your simulations and preferences are saved to your account
+            </div>
+
+            <div style={{
+              display: "flex",
+              gap: "8px",
+              flexDirection: "column",
+            }}>
+              <button
+                onClick={() => {
+                  setShowLoginModal(false);
+                  router.push("/auth/login");
+                }}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  background: "var(--accent)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "6px",
+                  fontFamily: MONO,
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  letterSpacing: "0.05em",
+                  transition: "opacity 0.15s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              >
+                Log In
+              </button>
+              <button
+                onClick={() => {
+                  setShowLoginModal(false);
+                  router.push("/auth/signup");
+                }}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  background: "transparent",
+                  color: "var(--accent)",
+                  border: "1px solid var(--accent)",
+                  borderRadius: "6px",
+                  fontFamily: MONO,
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  letterSpacing: "0.05em",
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--accent)";
+                  e.currentTarget.style.color = "#fff";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "var(--accent)";
+                }}
+              >
+                Sign Up
+              </button>
+              <button
+                onClick={() => setShowLoginModal(false)}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  background: "none",
+                  color: "var(--text-muted)",
+                  border: "none",
+                  borderRadius: "6px",
+                  fontFamily: MONO,
+                  fontSize: "12px",
+                  cursor: "pointer",
+                  letterSpacing: "0.04em",
+                  transition: "color 0.15s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}
+              >
+                Maybe later
+              </button>
+            </div>
           </motion.div>
         </div>
       )}

@@ -30,6 +30,10 @@ function toRFNodes(
   decisionLabel: string,
   onNodeClick: (id: string) => void
 ): Node[] {
+  const uniqueGraphNodes = Array.from(
+    new Map(graphNodes.map((n) => [n.id, n])).values()
+  );
+
   const rfNodes: Node[] = [
     {
       id: "__decision__",
@@ -40,7 +44,7 @@ function toRFNodes(
     },
   ];
 
-  for (const n of graphNodes) {
+  for (const n of uniqueGraphNodes) {
     const isDone = completedIds.includes(n.id);
     const status = isDone ? "done" : phase === "simulating" ? "active" : "pending";
 
@@ -66,7 +70,9 @@ function toRFNodes(
 }
 
 function toRFEdges(edges: GraphEdge[], completedIds: string[]): Edge[] {
-  return edges.map((e) => {
+  const uniqueEdges = Array.from(new Map(edges.map((e) => [e.id, e])).values());
+
+  return uniqueEdges.map((e) => {
     const isInteraction = e.type === "interaction";
     const isActive = isInteraction &&
       completedIds.includes(e.source) &&
@@ -94,7 +100,11 @@ function toRFEdges(edges: GraphEdge[], completedIds: string[]): Edge[] {
 
 // Add edges from decision center to all primary nodes
 function addDecisionEdges(rfEdges: Edge[], graphNodes: GraphNode[]): Edge[] {
-  const extra: Edge[] = graphNodes
+  const uniqueGraphNodes = Array.from(
+    new Map(graphNodes.map((n) => [n.id, n])).values()
+  );
+
+  const extra: Edge[] = uniqueGraphNodes
     .filter((n) => n.is_primary)
     .map((n) => ({
       id: `__decision__${n.id}`,
@@ -103,7 +113,9 @@ function addDecisionEdges(rfEdges: Edge[], graphNodes: GraphNode[]): Edge[] {
       style: { stroke: "#c7bfff", strokeWidth: 1.5 },
       animated: false,
     }));
-  return [...rfEdges, ...extra];
+
+  const merged = [...rfEdges, ...extra];
+  return Array.from(new Map(merged.map((e) => [e.id, e])).values());
 }
 
 export default function SimulationGraph({ state, onNodeClick }: SimulationGraphProps) {

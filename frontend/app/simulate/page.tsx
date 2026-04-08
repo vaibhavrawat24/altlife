@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, Suspense } from "react";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { useAuth } from "@/hooks/useAuth";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -45,6 +46,7 @@ function MoonIcon({ color }: { color: string }) {
 
 function SimulatePageInner() {
   const { state, start, reset } = useSimulationStream();
+  const { user, logout } = useAuth();
   const searchParams = useSearchParams();
   const prefillDecision = searchParams.get("decision") ?? "";
   const shareId = searchParams.get("id") ?? "";
@@ -55,6 +57,7 @@ function SimulatePageInner() {
   const [copyLabel, setCopyLabel] = useState("share results");
   const [shareDismissed, setShareDismissed] = useState(false);
   const [sharedState, setSharedState] = useState<any>(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -77,6 +80,11 @@ function SimulatePageInner() {
   const activeState = sharedState ?? state;
   const isRunning = !sharedState && state.phase !== "idle";
 
+  // Wrapper to pass user_id to start function
+  const handleSimulationStart = (profile: string, decision: string) => {
+    start(profile, decision, user?.user_id);
+  };
+
   // sync theme from localStorage on mount
   useEffect(() => {
     try {
@@ -93,7 +101,13 @@ function SimulatePageInner() {
       nodes: activeState.nodes,
     };
     try {
-      const res = await fetch(`${API_URL}/share`, {
+      // Pass user_id if authenticated
+      let shareUrl = `${API_URL}/share`;
+      if (user?.user_id) {
+        shareUrl += `?user_id=${encodeURIComponent(user.user_id)}`;
+      }
+      
+      const res = await fetch(shareUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -199,6 +213,137 @@ function SimulatePageInner() {
               {isMobile ? "← new" : "← new simulation"}
             </button>
           )}
+
+          {/* Auth Section */}
+          {user ? (
+            // Profile Menu
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              {user.is_admin && (
+                <Link href="/admin" style={{
+                  fontSize: "11px", fontFamily: "var(--font-space-mono), 'Courier New', monospace",
+                  padding: "6px 10px", borderRadius: "6px",
+                  border: "1px solid var(--border)",
+                  background: "transparent", color: "var(--accent)",
+                  textDecoration: "none",
+                }}>
+                  Admin
+                </Link>
+              )}
+
+              <Link href="/history" style={{
+                fontSize: "11px", fontFamily: "var(--font-space-mono), 'Courier New', monospace",
+                padding: "6px 10px", borderRadius: "6px",
+                border: "1px solid var(--border)",
+                background: "transparent", color: "var(--text-secondary)",
+                textDecoration: "none",
+              }}>
+                History
+              </Link>
+
+              <div style={{ position: "relative" }}>
+              <button
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                title={user.email}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  width: "32px", height: "32px",
+                  background: "var(--accent)",
+                  border: "none",
+                  borderRadius: "50%", cursor: "pointer",
+                  color: "#fff", fontSize: "14px", fontWeight: 700,
+                  flexShrink: 0,
+                }}
+              >
+                {user.email?.[0]?.toUpperCase() || "U"}
+              </button>
+
+              {showProfileMenu && (
+                <div style={{
+                  position: "absolute",
+                  top: "calc(100% + 8px)",
+                  right: 0,
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "6px",
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                  zIndex: 1000,
+                  minWidth: "180px",
+                }}>
+                  <div style={{
+                    padding: "8px 12px",
+                    borderBottom: "1px solid var(--border)",
+                    fontSize: "12px",
+                    color: "var(--text-secondary)",
+                    fontFamily: "var(--font-space-mono), 'Courier New', monospace",
+                  }}>
+                    {user.email}
+                  </div>
+                  
+                  {user.login_bonus_remaining > 0 && (
+                    <div style={{
+                      padding: "8px 12px",
+                      fontSize: "11px",
+                      color: "#10b981",
+                      fontFamily: "var(--font-space-mono), 'Courier New', monospace",
+                      borderBottom: "1px solid var(--border)",
+                    }}>
+                      🎁 {user.login_bonus_remaining} free sim{user.login_bonus_remaining !== 1 ? "s" : ""}
+                    </div>
+                  )}
+                  
+                  <button
+                    onClick={() => {
+                      logout();
+                      setShowProfileMenu(false);
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      background: "transparent",
+                      border: "none",
+                      color: "#ef4444",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                      fontFamily: "var(--font-space-mono), 'Courier New', monospace",
+                      textAlign: "left",
+                      transition: "background 0.15s",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+              </div>
+            </div>
+          ) : (
+            // Login/Signup Buttons
+            <div style={{ display: "flex", gap: "8px" }}>
+              <Link href="/auth/login" style={{
+                fontSize: "11px", fontFamily: "var(--font-space-mono), 'Courier New', monospace",
+                padding: "6px 12px", borderRadius: "6px",
+                border: "1px solid var(--border)",
+                background: "transparent", color: "var(--text-secondary)",
+                cursor: "pointer", letterSpacing: "0.02em",
+                textDecoration: "none",
+                transition: "all 0.2s",
+              }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                Log in
+              </Link>
+              <Link href="/auth/signup" style={{
+                fontSize: "11px", fontFamily: "var(--font-space-mono), 'Courier New', monospace",
+                padding: "6px 12px", borderRadius: "6px",
+                border: "none",
+                background: "var(--accent)", color: "#fff",
+                cursor: "pointer", letterSpacing: "0.02em",
+                textDecoration: "none",
+                transition: "opacity 0.2s",
+              }} onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")} onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}>
+                Sign up
+              </Link>
+            </div>
+          )}
         </div>
       </nav>
 
@@ -218,7 +363,7 @@ function SimulatePageInner() {
                   A network of real-world actors will simulate how your decision unfolds over 12 months.
                 </p>
               </div>
-              <InputForm onSubmit={start} prefillDecision={prefillDecision} />
+              <InputForm onSubmit={handleSimulationStart} prefillDecision={prefillDecision} />
             </motion.div>
           )}
 
