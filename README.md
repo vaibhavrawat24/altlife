@@ -1,77 +1,45 @@
----
-title: Altlife
-emoji: 🔀
-colorFrom: purple
-colorTo: indigo
-sdk: docker
-app_port: 7860
-pinned: false
----
+# Altlife
 
-# Altlife - Future Simulation Engine
+Altlife is a decision simulation engine. You describe a life decision — quitting your job, moving cities, starting a business — and a network of AI agents simulates how it plays out over 12 months.
 
-## Overview
+## What it does
 
-Altlife simulates possible outcomes for user decisions using multiple AI agents with distinct perspectives. It is not a prediction system, but a scenario simulation engine.
+Most decision tools give you one answer. Altlife gives you a world. It spins up a cast of actors relevant to your specific situation — your employer, your bank, your family, the economy — and runs them through 12 months of simulated time, each acting on their own logic.
 
-## Features
-- Multiple agent perspectives (Optimist, Pessimist, Risk Analyst, Mentor)
-- 3 rounds of agent interaction
-- Timeline, summary, and risk score output
-- Async, modular FastAPI backend
+The output isn't a prediction. It's a stress test: here's who gets affected, here's what they do, here's where things go sideways, here's your risk score.
 
-## Folder Structure
-```
-altlife/
-├── agents/
-│   ├── base.py
-│   ├── optimist.py
-│   ├── pessimist.py
-│   ├── risk.py
-│   └── mentor.py
-├── api/
-│   └── main.py
-├── services/
-│   └── llm.py
-├── simulation/
-│   └── orchestrator.py
-├── requirements.txt
-└── .env.example
-```
+## How it works
 
-## Setup Instructions
+When you submit a decision, the engine runs through several stages in sequence:
 
-1. **Clone repo & enter folder**
+**1. Profile extraction**
+Your free-text input is structured into a profile — profession, financial runway, risk tolerance, location, support system.
 
-2. **Create virtual environment**
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
+**2. World building**
+A world builder agent creates a cast of actors relevant to your decision. For a job resignation, this might be your current employer, a recruiter, your savings account, your landlord, a startup co-founder. Each actor has a role, a stake in your decision, and a disposition.
 
-3. **Install dependencies**
-```bash
-pip install -r requirements.txt
-```
+**3. Agent simulation — 3 rounds**
+Each actor runs independently through 3 rounds of interaction. In each round they generate events, react to other actors' moves, and update their stance. Actors can shift from supportive to skeptical as the simulation unfolds.
 
-4. **Set OpenAI API key**
-- Copy `.env.example` to `.env` and add your OpenAI API key.
-- Or set `OPENAI_API_KEY` in your environment.
+**4. Reality check**
+A separate agent cross-references your scenario against real-world context — market conditions, typical outcomes for similar decisions, base rates.
 
-5. **Run the API**
-```bash
-uvicorn api.main:app --reload
-```
+**5. Synthesis**
+A synthesizer reads all actor timelines and produces a final verdict: most likely outcome, key risks, key opportunities, conditions for success, and a 0–100 risk score.
 
-6. **Test the endpoint**
-```bash
-curl -X POST http://localhost:8000/simulate \
-  -H 'Content-Type: application/json' \
-  -d '{"profile": "Software engineer, 5 years experience, $50k savings", "decision": "Quit job to start a startup"}'
-```
+## Agent types
 
-## Notes
-- Uses OpenAI GPT-4.1 API (set your key!)
-- No LangChain or external frameworks
-- Async/await throughout
-- Modular and ready to extend
+| Agent | Role |
+|---|---|
+| World Builder | Constructs the actor graph for your specific situation |
+| Actor agents | Each simulates one stakeholder across 3 rounds |
+| Reality Checker | Grounds the simulation in real-world context |
+| Synthesizer | Produces the final analysis and risk score |
+
+## Tech stack
+
+**Backend** — FastAPI (Python), streaming SSE, Supabase (Postgres + Auth), OpenRouter / GitHub Models / OpenAI
+
+**Frontend** — Next.js 15, animated force-directed graph (D3), Framer Motion, Supabase Auth (Google OAuth + email)
+
+**Infrastructure** — Dockerized backend, Vercel frontend, rate limiting per user and IP

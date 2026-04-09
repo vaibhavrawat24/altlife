@@ -1,8 +1,52 @@
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Environment
 .env
 .env.*
 !.env.example
-.venv/
-__pycache__/
-*.pyc
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# OS
 .DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Node / Next.js (frontend handled by frontend/.gitignore, but cover root installs)
+node_modules/
+.next/
+out/
+.vercel
+
+# Internal docs
+DEPLOYMENT_CHECKLIST.md
+FLOW_REFERENCE.md
+IMPLEMENTATION_SUMMARY.md
+LOGIN_SIGNUP_SUMMARY.md
+SUPABASE_SETUP.md
+
+# Misc
+*.pem
 shares.db

@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Altlife — Frontend
 
-## Getting Started
+Next.js 15 frontend for the Altlife decision simulation engine.
 
-First, run the development server:
+## Structure
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+frontend/
+├── app/
+│   ├── simulate/        # Main simulation page (graph + timeline + synthesis)
+│   ├── auth/
+│   │   ├── login/       # Email/password login
+│   │   ├── signup/      # Email/password signup
+│   │   └── callback/    # OAuth redirect handler
+│   └── layout.tsx
+├── components/
+│   ├── input/
+│   │   └── InputForm    # Decision + profile form
+│   └── graph/
+│       ├── SimulationGraph   # Force-directed actor graph (D3)
+│       └── NodePanel         # Actor detail panel
+├── hooks/
+│   ├── useSimulationStream  # SSE streaming from backend
+│   ├── useRateLimit         # Client-side cooldown timer
+│   └── useAuth              # Supabase auth state + token management
+└── types/
+    └── simulation.ts        # Shared TypeScript types
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Key flows
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**Simulation** — `useSimulationStream` opens an SSE connection to `/simulate/stream`. Events arrive incrementally (`profile_extracted` → `graph_ready` → `actor_complete` × N → `timeline_ready` → `synthesis_complete`) and each updates the UI in real time.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Rate limiting** — `useRateLimit` stores a cooldown deadline in localStorage. For anonymous users it's set client-side on submit. For authenticated users it's set when the backend returns a 429. The countdown timer and disabled button state are identical for both.
 
-## Learn More
+**Auth** — Email/password via backend endpoints + Google OAuth via Supabase. Sessions are managed by the Supabase client (auto-refresh). The active access token is kept in `localStorage` under `altlife_token` and sent as a `Bearer` header on API requests.
 
-To learn more about Next.js, take a look at the following resources:
+## Environment variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | Backend URL (e.g. `https://your-api.com`) |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_KEY` | Supabase anon key |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Google OAuth client ID |
