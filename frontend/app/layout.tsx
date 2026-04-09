@@ -57,7 +57,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "altlife — Simulate Your Life Decisions with AI",
+    title: "altlife - Simulate Your Life Decisions with AI",
     description: "A network of AI agents simulates how your decisions unfold over 12 months.",
     images: ["/og-image.png"],
   },

@@ -94,7 +94,7 @@ function SimulatePageInner() {
 
   // Wrapper to pass user_id to start function
   const handleSimulationStart = (profile: string, decision: string) => {
-    start(profile, decision, user?.user_id);
+    start(profile, decision);
   };
 
   // sync theme from localStorage on mount
@@ -385,6 +385,21 @@ function SimulatePageInner() {
                 </p>
               </div>
               <InputForm onSubmit={handleSimulationStart} prefillDecision={prefillDecision} />
+            </motion.div>
+          )}
+
+          {/* ── Share loading ─────────────────────────── */}
+          {shareLoading && !sharedState && (
+            <motion.div key="share-loading"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              style={{
+                minHeight: isMobile ? "240px" : "320px",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                border: "1px solid var(--border)", borderRadius: "12px",
+                background: "var(--surface)", color: "var(--text-secondary)", fontSize: "13px",
+              }}
+            >
+              Loading simulation…
             </motion.div>
           )}
 
@@ -695,28 +710,6 @@ function SimulatePageInner() {
                           </div>
                         </motion.div>
                       );
-
-                      {shareLoading && !sharedState && (
-                        <motion.div
-                          key="share-loading"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          style={{
-                            minHeight: isMobile ? "240px" : "320px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            border: "1px solid var(--border)",
-                            borderRadius: "12px",
-                            background: "var(--surface)",
-                            color: "var(--text-secondary)",
-                            fontSize: "13px",
-                          }}
-                        >
-                          Loading simulation…
-                        </motion.div>
-                      )}
                     })}
                   </div>
 

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useCallback } from "react";
 import { SimulationState, GraphEdge, SimulationEvent } from "@/types/simulation";
+import { RATE_LIMIT_DEADLINE_KEY } from "@/hooks/useRateLimit";
 
 function normalizeSynthesis(data: any) {
   return {
@@ -33,14 +34,10 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 export function useSimulationStream() {
   const [state, setState] = useState<SimulationState>(INITIAL);
 
-  const start = useCallback(async (profile: string, decision: string, userId?: string) => {
+  const start = useCallback(async (profile: string, decision: string) => {
     setState({ ...INITIAL, phase: "extracting" });
 
-    // Build URL with optional user_id
-    let url = `${API_URL}/simulate/stream`;
-    if (userId) {
-      url += `?user_id=${encodeURIComponent(userId)}`;
-    }
+    const url = `${API_URL}/simulate/stream`;
 
     const token = typeof window !== "undefined" ? localStorage.getItem("altlife_token") : null;
 
@@ -62,13 +59,17 @@ export function useSimulationStream() {
 
     // Handle rate limiting (429)
     if (response.status === 429) {
-      const waitSeconds = response.headers.get("X-Wait-Seconds") || "900";
+      const waitSeconds = parseInt(response.headers.get("X-Wait-Seconds") || "900", 10);
       const errorText = await response.text();
       let errorDetail = "Please wait before running another simulation";
       try {
         const errorJson = JSON.parse(errorText);
         errorDetail = errorJson.detail || errorDetail;
       } catch { /* use default */ }
+      // Write the deadline so useRateLimit picks it up and shows the countdown
+      try {
+        localStorage.setItem(RATE_LIMIT_DEADLINE_KEY, (Date.now() + waitSeconds * 1000).toString());
+      } catch { /* ignore */ }
       setState((s) => ({ ...s, phase: "error", error: errorDetail }));
       return;
     }

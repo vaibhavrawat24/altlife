@@ -24,6 +24,7 @@ from services.supabase import (
     get_all_users,
     get_anonymous_history,
 )
+import os
 import json
 import time
 
@@ -37,11 +38,14 @@ def get_client_ip(request: Request) -> str:
         return forwarded_for.split(",")[0].strip()
     return request.client.host if request.client else "unknown"
 
+_raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
+_allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_allowed_origins,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 
@@ -72,10 +76,7 @@ def require_admin(request: Request) -> dict:
 async def simulate_stream(req: SimulateRequest, request: Request):
     """
     SSE streaming endpoint. Emits JSON events as each agent completes.
-    
-    Query params:
-      user_id (optional) - authenticated user ID
-      
+
     Event types:
       profile_extracted  — structured profile from user input
       agents_selected    — which agents were chosen for this domain
@@ -84,13 +85,9 @@ async def simulate_stream(req: SimulateRequest, request: Request):
       synthesis_complete — final synthesizer output
     """
     client_ip = get_client_ip(request)
-    user_id = request.query_params.get("user_id")  # Optional authenticated user
-    user_email = None
-
     auth_user, _ = get_request_user(request)
+    user_id = auth_user.get("id")  # Always use verified identity, never trust query params
     user_email = auth_user.get("email")
-    if auth_user.get("id") and not user_id:
-        user_id = auth_user.get("id")
     
     # Check normal rate limit first
     allowed, wait_seconds, can_login = check_rate_limit(user_id, client_ip, user_email)
@@ -195,7 +192,8 @@ async def simulate_stream(req: SimulateRequest, request: Request):
 @app.post("/share")
 async def create_share(data: dict, request: Request):
     """Store simulation data and return share_id."""
-    user_id = request.query_params.get("user_id")
+    auth_user, _ = get_request_user(request)
+    user_id = auth_user.get("id")
     client_ip = get_client_ip(request)
     
     share_id = store_simulation(
@@ -243,8 +241,8 @@ async def signup(email: str = Form(...), password: str = Form(...), request: Req
             "email": user.get("email"),
             "session": session.get("access_token")
         }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Signup failed")
 
 
 @app.post("/auth/login")
@@ -275,31 +273,24 @@ async def login(email: str = Form(...), password: str = Form(...)):
 @app.post("/auth/oauth-callback")
 async def oauth_callback(request: Request):
     """Handle OAuth callback - grant login bonus."""
-    from services.supabase import grant_login_bonus
-    
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
+    # Verify identity from the bearer token, never trust the request body
+    user, _ = get_request_user(request)
+    user_id = user.get("id")
+    email = user.get("email")
+
+    if not user_id:
         raise HTTPException(status_code=401, detail="Unauthorized")
-    
+
     try:
-        payload = await request.json()
-        email = payload.get("email")
-        user_id = payload.get("user_id")
-
-        if not email or not user_id:
-            raise HTTPException(status_code=400, detail="Missing email or user_id")
-
-        # Grant login bonus for OAuth signup/login
         upsert_profile(user_id, email, "google")
         grant_login_bonus(user_id)
-        
         return {
             "user_id": user_id,
             "email": email,
             "message": "OAuth login successful"
         }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=500, detail="OAuth callback failed")
 
 
 @app.get("/auth/me")
@@ -363,6 +354,7 @@ async def health():
 
 
 @app.get("/debug/llm-provider")
-async def debug_llm_provider():
+async def debug_llm_provider(request: Request):
     """Debug endpoint: show configured LLM provider chain and last successful provider used."""
+    require_admin(request)
     return get_llm_provider_status()

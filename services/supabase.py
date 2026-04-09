@@ -1,6 +1,7 @@
 import os
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from urllib.parse import quote
 import httpx
 from typing import Optional, Dict, Any
 
@@ -120,7 +121,7 @@ def upsert_profile(user_id: str, email: Optional[str], provider: str) -> None:
             "updated_at": now,
         }
         with httpx.Client() as client:
-            lookup_url = f"{SUPABASE_URL}/rest/v1/profiles?user_id=eq.{user_id}&select=user_id"
+            lookup_url = f"{SUPABASE_URL}/rest/v1/profiles?user_id=eq.{quote(user_id, safe='')}&select=user_id"
             lookup_response = client.get(lookup_url, headers=HEADERS)
 
             if lookup_response.status_code >= 400:
@@ -128,7 +129,7 @@ def upsert_profile(user_id: str, email: Optional[str], provider: str) -> None:
                 return
 
             if lookup_response.json():
-                update_url = f"{SUPABASE_URL}/rest/v1/profiles?user_id=eq.{user_id}"
+                update_url = f"{SUPABASE_URL}/rest/v1/profiles?user_id=eq.{quote(user_id, safe='')}"
                 response = client.patch(
                     update_url,
                     headers=HEADERS,
@@ -202,7 +203,7 @@ def get_simulation(share_id: str) -> Optional[Dict[str, Any]]:
     """Retrieve simulation data by share_id."""
     try:
         with httpx.Client() as client:
-            url = f"{SUPABASE_URL}/rest/v1/simulations?share_id=eq.{share_id}"
+            url = f"{SUPABASE_URL}/rest/v1/simulations?share_id=eq.{quote(share_id, safe='')}"
             response = client.get(url, headers=HEADERS)
             
             if response.status_code == 200 and response.text:
@@ -230,7 +231,7 @@ def get_user_history(user_id: str, limit: int = 20) -> list[Dict[str, Any]]:
         with httpx.Client() as client:
             url = (
                 f"{SUPABASE_URL}/rest/v1/simulations"
-                f"?user_id=eq.{user_id}"
+                f"?user_id=eq.{quote(user_id, safe='')}"
                 "&select=share_id,decision,profile,created_at"
                 "&order=created_at.desc"
                 f"&limit={limit}"
@@ -316,7 +317,7 @@ def check_rate_limit(user_id: Optional[str], ip_address: str, email: Optional[st
     Returns (allowed: bool, wait_seconds: int, can_login_to_reset: bool)
     """
     try:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         if is_admin_email(email):
             return True, 0, False
@@ -326,7 +327,7 @@ def check_rate_limit(user_id: Optional[str], ip_address: str, email: Optional[st
                 value = record.get(field)
                 if value:
                     try:
-                        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+                        return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
                     except Exception:
                         continue
             return None
@@ -335,12 +336,12 @@ def check_rate_limit(user_id: Optional[str], ip_address: str, email: Optional[st
             records = []
 
             if user_id:
-                user_url = f"{SUPABASE_URL}/rest/v1/rate_limits?user_id=eq.{user_id}&select=*&limit=20"
+                user_url = f"{SUPABASE_URL}/rest/v1/rate_limits?user_id=eq.{quote(user_id, safe='')}&select=*&limit=20"
                 user_response = client.get(user_url, headers=HEADERS)
                 if user_response.status_code == 200 and user_response.text:
                     records.extend(user_response.json() or [])
 
-            ip_url = f"{SUPABASE_URL}/rest/v1/rate_limits?ip_address=eq.{ip_address}&select=*&limit=20"
+            ip_url = f"{SUPABASE_URL}/rest/v1/rate_limits?ip_address=eq.{quote(ip_address, safe='')}&select=*&limit=20"
 
             ip_response = client.get(ip_url, headers=HEADERS)
             if ip_response.status_code == 200 and ip_response.text:
@@ -379,29 +380,22 @@ def is_admin_email(email: Optional[str]) -> bool:
 def record_rate_limit(user_id: Optional[str], ip_address: str) -> None:
     """Record a simulation attempt for rate limiting."""
     try:
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         candidates = [
-            {
-                "user_id": user_id,
-                "ip_address": ip_address,
-                "created_at": now,
-            },
-            {
-                "user_id": user_id,
-                "ip_address": ip_address,
-                "last_attempt": now,
-                "reset_at": now,
-            },
-            {
-                "user_id": user_id,
-                "ip_address": ip_address,
-            },
+            {"user_id": user_id, "ip_address": ip_address, "created_at": now},
+            {"user_id": user_id, "ip_address": ip_address, "last_attempt": now, "reset_at": now},
+            {"user_id": user_id, "ip_address": ip_address},
         ]
 
-        for payload in candidates:
-            result = _make_request("POST", "rate_limits", json=[payload])
-            if result is not None:
-                return
+        with httpx.Client() as client:
+            for payload in candidates:
+                response = client.post(
+                    f"{SUPABASE_URL}/rest/v1/rate_limits",
+                    headers=HEADERS,
+                    json=[payload],
+                )
+                if response.status_code < 400:
+                    return
     except Exception as e:
         print(f"[Supabase] Error recording rate limit: {e}")
 
@@ -427,13 +421,13 @@ def check_login_bonus(user_id: str) -> int:
         with httpx.Client() as client:
             url = (
                 f"{SUPABASE_URL}/rest/v1/login_bonuses"
-                f"?user_id=eq.{user_id}"
+                f"?user_id=eq.{quote(user_id, safe='')}"
                 "&select=id,bonus_count,used_count,free_sims"
                 "&order=created_at.desc"
                 "&limit=1"
             )
             response = client.get(url, headers=HEADERS)
-            
+
             if response.status_code == 200 and response.text:
                 data_list = response.json()
                 if data_list:
@@ -458,7 +452,7 @@ def use_login_bonus(user_id: str) -> bool:
         with httpx.Client() as client:
             url = (
                 f"{SUPABASE_URL}/rest/v1/login_bonuses"
-                f"?user_id=eq.{user_id}"
+                f"?user_id=eq.{quote(user_id, safe='')}"
                 "&select=id,bonus_count,used_count,free_sims"
                 "&order=created_at.desc"
                 "&limit=1"
@@ -484,7 +478,7 @@ def use_login_bonus(user_id: str) -> bool:
                 if bonus - used <= 0:
                     return False
                 update_data = {"used_count": used + 1}
-                _make_request("PATCH", f"login_bonuses?id=eq.{bonus_id}", json=update_data)
+                _make_request("PATCH", f"login_bonuses?id=eq.{quote(str(bonus_id), safe='')}", json=update_data)
                 return True
 
             # Legacy schema path
@@ -493,7 +487,7 @@ def use_login_bonus(user_id: str) -> bool:
                 if free_sims <= 0:
                     return False
                 update_data = {"free_sims": free_sims - 1}
-                _make_request("PATCH", f"login_bonuses?id=eq.{bonus_id}", json=update_data)
+                _make_request("PATCH", f"login_bonuses?id=eq.{quote(str(bonus_id), safe='')}", json=update_data)
                 return True
 
         return False
