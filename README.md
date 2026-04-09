@@ -1,3 +1,13 @@
+---
+title: Altlife
+emoji: 🔀
+colorFrom: purple
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Altlife
 
 Altlife is a decision simulation engine. You describe a life decision — quitting your job, moving cities, starting a business — and a network of AI agents simulates how it plays out over 12 months.
