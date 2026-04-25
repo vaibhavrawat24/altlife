@@ -348,9 +348,14 @@ async def admin_user_simulations(user_id: str, request: Request, limit: int = 50
     return {"items": get_user_history(user_id, safe_limit)}
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
-    return {"status": "ok"}
+    try:
+        from services.supabase import _make_request
+        _make_request("GET", "profiles", params="select=user_id&limit=1")
+        return {"status": "ok", "db": "reachable"}
+    except Exception:
+        return {"status": "ok", "db": "unreachable"}
 
 
 @app.get("/debug/llm-provider")
